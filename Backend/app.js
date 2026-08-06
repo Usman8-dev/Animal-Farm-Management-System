@@ -1,10 +1,15 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const cookieParser = require('cookie-parser');
-require('dotenv').config();
+import express from 'express';
+import cors from'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import 'dotenv/config';
+
 
 const app = express();
+
+// Routers 
+import userRouter from './Routers/userRouter.js';
+
 
 // ─── Security & Parsing Middleware ───────────────────────────────
 app.use(helmet());
@@ -18,11 +23,8 @@ app.use(cors({
   credentials: true,
 }));
 
-// ─── Health Check ─────────────────────────────────────────────────
-app.get('/', (req, res) => {
-  res.status(200).json({ success: true, message: 'Farm Management API is running' });
-});
 
+app.use('/user', userRouter);
 
 // ─── 404 Handler ───────────────────────────────────────────────────
 app.use((req, res) => {
