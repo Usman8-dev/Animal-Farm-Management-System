@@ -11,3 +11,107 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum FarmRole {
+  manager
+  worker
+}
+
+enum MemberStatus {
+  active
+  pending
+  removed
+}
+
+model Person {
+  id           Int       @id @default(autoincrement())
+  name         String
+  cnic_number  String?   @unique
+  gender       String
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+
+  createdby    Int?
+  updatedby    Int?
+  deletedby    Int?
+
+  createdByPerson Person? @relation("PersonCreatedBy", fields: [createdby], references: [id])
+  updatedByPerson Person? @relation("PersonUpdatedBy", fields: [updatedby], references: [id])
+  deletedByPerson Person? @relation("PersonDeletedBy", fields: [deletedby], references: [id])
+
+  // reverse relations for self-references
+  createdPersons Person[] @relation("PersonCreatedBy")
+  updatedPersons Person[] @relation("PersonUpdatedBy")
+  deletedPersons Person[] @relation("PersonDeletedBy")
+
+  credentials      Person_Credentials?
+  ownedFarm        Farms?  @relation("FarmOwner")
+  farmMember       Farm_Members[] @relation("FarmMemberPerson")
+
+  @@map("person")
+}
+
+model Person_Credentials {
+  id             Int       @id @default(autoincrement())
+  person_id      Int       @unique
+  person         Person    @relation(fields: [person_id], references: [id])
+
+  email          String    @unique
+  password       String
+  email_verified Boolean   @default(false)
+
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  deleted_at     DateTime?
+
+  createdby      Int?
+  updatedby      Int?
+  deletedby      Int?
+
+  @@map("person_credentials")
+}
+
+model Farms {
+  id         Int       @id @default(autoincrement())
+  farm_name  String
+  owner_id   Int       @unique
+  owner      Person    @relation("FarmOwner", fields: [owner_id], references: [id])
+  location   String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  createdby  Int?
+  updatedby  Int?
+  deletedby  Int?
+
+  members    Farm_Members[]
+
+  @@map("farms")
+}
+
+
+model Farm_Members {
+  id         Int          @id @default(autoincrement())
+  farm_id    Int
+  farm       Farms        @relation(fields: [farm_id], references: [id])
+
+  person_id  Int
+  person     Person       @relation("FarmMemberPerson", fields: [person_id], references: [id])
+
+  role       FarmRole
+  status     MemberStatus @default(active)
+  joined_at  DateTime     @default(now())
+
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+  deleted_at DateTime?
+
+  createdby  Int?
+  updatedby  Int?
+  deletedby  Int?
+
+  @@map("farm_members")
+}
