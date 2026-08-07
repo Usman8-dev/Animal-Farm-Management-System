@@ -1,8 +1,9 @@
 import bcrypt from 'bcrypt';
 import prisma from '../prisma/client.js';
+import jwt from 'jsonwebtoken';
 
 import { generateAuthToken, generateVerificationToken } from '../utils/generateToken.js';
-// import sendVerificationEmail from '../utils/sendVerificationEmail.js';
+import sendVerificationEmail from '../utils/sendVerificationEmail.js';
 
 const RegisterOwner = async (req, res) => {
   try {
@@ -95,4 +96,52 @@ const RegisterOwner = async (req, res) => {
   }
 };
 
-export { RegisterOwner };
+// VerifyEmail 
+
+const VerifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Verification token is missing' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_KEY);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification link is invalid or has expired',
+      });
+    }
+
+    const { personId, email } = decoded;
+
+    const credentials = await prisma.person_Credentials.findUnique({
+      where: { person_id: personId },
+    });
+
+    if (!credentials || credentials.email !== email) {
+      return res.status(400).json({ success: false, message: 'Invalid verification token' });
+    }
+
+    if (credentials.email_verified) {
+      return res.status(200).json({ success: true, message: 'Email is already verified' });
+    }
+
+    await prisma.person_Credentials.update({
+      where: { person_id: personId },
+      data: { email_verified: true, updatedby: personId },
+    });
+
+    return res.status(200).json({ success: true, message: 'Email verified successfully' });
+
+  } catch (err) {
+    console.error('Email verification error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+
+export { RegisterOwner, VerifyEmail };
