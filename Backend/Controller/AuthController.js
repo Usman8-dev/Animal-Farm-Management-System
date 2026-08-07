@@ -143,5 +143,102 @@ const VerifyEmail = async (req, res) => {
   }
 };
 
+const LoginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-export { RegisterOwner, VerifyEmail };
+    // 1. Find credentials by email
+    const credentials = await prisma.person_Credentials.findUnique({
+      where: { email },
+      include: { person: true },
+    });
+
+    if (!credentials) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    // 2. Compare password
+    const isMatch = await bcrypt.compare(password, credentials.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    const person = credentials.person;
+
+    // 3. Determine role — check if this person owns a farm first
+    let role;
+    let farmId;
+
+    const ownedFarm = await prisma.farms.findUnique({
+      where: { owner_id: person.id },
+    });
+
+    if (ownedFarm) {
+      role = 'owner';
+      farmId = ownedFarm.id;
+    } else {
+      // Not an owner — check Farm_Members for manager/worker role
+      const membership = await prisma.farm_Members.findFirst({
+        where: {
+          person_id: person.id,
+          status: 'active',
+        },
+      });
+
+      if (!membership) {
+        return res.status(403).json({
+          success: false,
+          message: 'No active farm membership found for this account',
+        });
+      }
+
+      role = membership.role;
+      farmId = membership.farm_id;
+    }
+
+    // 4. Generate auth token
+    const authToken = generateAuthToken(
+      { id: person.id, email: credentials.email },
+      role,
+      farmId,
+      credentials.email_verified
+    );
+
+    // 5. Set httpOnly cookie
+    res.cookie('token', authToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    // 6. Respond — never send back the password
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: person.id,
+        name: person.name,
+        email: credentials.email,
+        role,
+        farmId,
+        email_verified: credentials.email_verified,
+      },
+    });
+
+  } catch (err) {
+    console.error('Login error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error during login',
+    });
+  }
+};
+
+export { RegisterOwner, VerifyEmail, LoginUser };
