@@ -34,7 +34,7 @@ function VerifyEmailNotice() {
         </p>
 
         <Link
-          to="/login"
+          to="/"
           className="inline-block w-full rounded-lg bg-[#1f3d2e] px-4 py-3 text-sm font-semibold text-white hover:bg-[#3c6650] transition-colors"
         >
           Go to login

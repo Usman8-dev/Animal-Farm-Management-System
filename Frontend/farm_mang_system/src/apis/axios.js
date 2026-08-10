@@ -16,14 +16,35 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     if (error.response?.status === 401) {
+//       localStorage.removeItem("token");
+//       window.location.href = "/";
+//     }
+//     return Promise.reject(error);
+//   }
+// );
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      window.location.href = "/";
+      const url = error.config?.url || "";
+
+      // Do NOT redirect on login / register failures
+      const isAuthEndpoint =
+        url.includes("/user/login") ||
+        url.includes("/user/register");
+
+      if (!isAuthEndpoint) {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+      }
     }
-    return Promise.reject(error);
+
+    return Promise.reject(error); // always re-throw so your catch block still works
   }
 );
 
