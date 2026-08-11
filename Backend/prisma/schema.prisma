@@ -88,6 +88,7 @@ model Farms {
   deletedby  Int?
 
   members    Farm_Members[]
+  animals    Animal[] 
 
   @@map("farms")
 }
@@ -114,4 +115,145 @@ model Farm_Members {
   deletedby  Int?
 
   @@map("farm_members")
+}
+
+enum AcquisitionType {
+  BORN_IN_FARM
+  PURCHASED
+}
+
+// ── Reference / Lookup Data ─────────────────────────────────
+
+model Gender {
+  id      Int      @id @default(autoincrement())
+  code    String   @unique
+  name    String
+
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+  deleted_at DateTime?
+
+  createdby  Int?
+  updatedby  Int?
+  deletedby  Int?
+
+  animals Animal[]
+
+  @@map("genders")
+}
+
+model AnimalType {
+  id         Int       @id @default(autoincrement())
+  code       String    @unique
+  name       String
+  is_active  Boolean   @default(true)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  createdby  Int?
+  updatedby  Int?
+  deletedby  Int?
+
+  breeds     Breed[]
+  animals    Animal[]
+
+  @@map("animal_types")
+}
+
+model Breed {
+  id              Int         @id @default(autoincrement())
+  animal_type_id  Int
+  animalType      AnimalType  @relation(fields: [animal_type_id], references: [id])
+
+  code            String
+  name            String
+  gestation_days  Int         // used to calculate Pregnancies.expected_delivery_date (Module 4)
+  maturity_days   Int         // age (days) at which the animal is breeding-eligible
+  is_active       Boolean     @default(true)
+
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  deleted_at DateTime?
+
+  createdby  Int?
+  updatedby  Int?
+  deletedby  Int?
+
+  animals         Animal[]
+
+  @@unique([animal_type_id, code])
+  @@map("breeds")
+}
+
+// ── Core Animal Record ──────────────────────────────────────
+
+model Animal {
+  id                Int             @id @default(autoincrement())
+
+  // Every animal belongs to exactly one farm (multi-tenancy boundary)
+  farm_id           Int
+  farm              Farms           @relation(fields: [farm_id], references: [id])
+
+  tag_number        String
+  name              String?
+
+  animal_type_id    Int
+  animalType        AnimalType      @relation(fields: [animal_type_id], references: [id])
+
+  breed_id          Int
+  breed             Breed           @relation(fields: [breed_id], references: [id])
+
+  gender_id         Int
+  gender            Gender          @relation(fields: [gender_id], references: [id])
+
+  birth_date        DateTime?
+
+  // Self-referencing lineage — NULL when acquisition_type = PURCHASED
+  // (see Business Rule 2 below)
+  mother_id         Int?
+  mother            Animal?         @relation("AnimalMother", fields: [mother_id], references: [id])
+  motherOf          Animal[]        @relation("AnimalMother")
+
+  father_id         Int?
+  father            Animal?         @relation("AnimalFather", fields: [father_id], references: [id])
+  fatherOf          Animal[]        @relation("AnimalFather")
+
+  acquisition_type  AcquisitionType
+  acquired_on       DateTime?
+  notes             String?
+
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+  deleted_at        DateTime?
+
+  createdby         Int?
+  updatedby         Int?
+  deletedby         Int?
+
+  images            AnimalImage[]
+
+  @@unique([farm_id, tag_number]) // tag numbers are unique per farm, not globally
+  @@map("animals")
+}
+
+model AnimalImage {
+  id         Int      @id @default(autoincrement())
+  animal_id  Int
+  animal     Animal   @relation(fields: [animal_id], references: [id])
+
+  url        String
+  caption    String?
+  is_primary Boolean  @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime     @updatedAt
+  deleted_at DateTime?
+
+  createdby  Int?
+  updatedby  Int?
+  deletedby  Int?
+
+  @@map("animal_images")
 }
