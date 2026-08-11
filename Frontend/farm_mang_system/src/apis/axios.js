@@ -1,20 +1,20 @@
-import axios from "axios";
+// import axios from "axios";
+
+// // const api = axios.create({
+// //   baseURL: import.meta.env.VITE_API_URL,
+// // });
 
 // const api = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL,
+//   baseURL: "http://localhost:5000",
 // });
 
-const api = axios.create({
-  baseURL: "http://localhost:5000",
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// api.interceptors.request.use((config) => {
+//   const token = localStorage.getItem("token");
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
 
 // api.interceptors.response.use(
 //   (response) => response,
@@ -27,25 +27,38 @@ api.interceptors.request.use((config) => {
 //   }
 // );
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      const url = error.config?.url || "";
+// --------------------------
+// --------------------------
+ 
 
-      // Do NOT redirect on login / register failures
-      const isAuthEndpoint =
-        url.includes("/user/login") ||
-        url.includes("/user/register");
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     if (error.response?.status === 401) {
+//       const url = error.config?.url || "";
 
-      if (!isAuthEndpoint) {
-        localStorage.removeItem("token");
-        window.location.href = "/";
-      }
-    }
+//       // Do NOT redirect on login / register failures
+//       const isAuthEndpoint =
+//         url.includes("/user/login") ||
+//         url.includes("/user/register");
 
-    return Promise.reject(error); // always re-throw so your catch block still works
-  }
-);
+//       if (!isAuthEndpoint) {
+//         localStorage.removeItem("token");
+//         window.location.href = "/";
+//       }
+//     }
+
+//     return Promise.reject(error); // always re-throw so your catch block still works
+//   }
+// );
+
+// export default api;
+
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "http://localhost:5000",
+  withCredentials: true, // REQUIRED — tells axios to send/receive httpOnly cookies
+});
 
 export default api;

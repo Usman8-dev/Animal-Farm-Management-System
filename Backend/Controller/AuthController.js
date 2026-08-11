@@ -263,4 +263,8 @@ const LogoutUser = async (req, res) => {
   }
 };
 
-export { RegisterOwner, VerifyEmail, LoginUser, LogoutUser };
+const GetMe = async (req, res) => {
+  return res.status(200).json({ success: true, user: req.user });
+};
+
+export { RegisterOwner, VerifyEmail, LoginUser, LogoutUser, GetMe };

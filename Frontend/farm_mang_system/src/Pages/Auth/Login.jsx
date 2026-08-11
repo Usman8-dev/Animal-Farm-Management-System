@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { LoginSchema } from "../../validations/LoginSchema";
 import api from "../../apis/axios";
+import { useAuth } from "../../context/AuthContext";
 
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
@@ -14,7 +15,7 @@ function Login() {
   const navigate = useNavigate();
   const showToast = useToast();
   const [showPassword, setShowPassword] = useState(false);
-
+  const { login } = useAuth(); 
   const {
     register,
     handleSubmit,
@@ -26,6 +27,8 @@ function Login() {
   const onSubmit = async (data) => {
     try {
       const res = await api.post("/user/login", data);
+
+        login(res.data.user);
 
       showToast({
         severity: "success",
@@ -188,7 +191,7 @@ function Login() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
+              {/* <div className="flex items-center justify-between">
                 <label className="text-[0.8rem] font-semibold text-[#1b241d]">
                   Password
                 </label>
@@ -198,7 +201,7 @@ function Login() {
                 >
                   Forgot password?
                 </Link>
-              </div>
+              </div> */}
               <div className="relative flex">
                 <InputText
                   type={showPassword ? "text" : "password"}
