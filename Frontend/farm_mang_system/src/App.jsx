@@ -48,7 +48,9 @@ import Dashboard from "./Pages/Dashboard";
 import ProtectedRoute from "./components/Protectedroute";
 import Layout from "./components/Layout";
 import VerifyEmail from "./Pages/Auth/Verifyemail";
-
+import AnimalTypesTab from "./Pages/MasterData/Animaltypestab";
+import BreedsTab from "./Pages/MasterData/Breedstab";
+import GendersTab from "./Pages/MasterData/GendersTab";
 function App() {
   return (
     <div>
@@ -68,7 +70,12 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="/dashboard" element={<Dashboard />} />
+                {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+
+                    <Route path="/master-data/animal-types" element={<AnimalTypesTab />} />
+                    <Route path="/master-data/breeds" element={<BreedsTab />} />
+                    <Route path="/master-data/genders" element={<GendersTab />} />
+
               </Route>
             </Routes>
           </ToastProvider>

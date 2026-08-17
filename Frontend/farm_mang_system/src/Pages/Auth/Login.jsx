@@ -40,7 +40,7 @@ function Login() {
       // Route by role — adjust destinations once those pages exist
       const role = res.data?.user?.role;
       if (role === "owner") {
-        navigate("/dashboard");
+        navigate("/master-data/animal-types");
       } else {
         navigate("/dashboard");
       }
