@@ -212,12 +212,12 @@ function AnimalTypesTab() {
         globalFilterFields={["name", "code"]}
         emptyMessage="No animal types yet."
       >
-        <Column field="code" header="Code" sortable style={{ width: "25%" }} />
-        <Column field="name" header="Name" sortable style={{ width: "45%" }}/>
+        {/* <Column field="code" header="Code" sortable style={{ width: "25%" }} /> */}
+        <Column field="name" header="Name" sortable style={{ width: "35%" }}/>
         <Column
           field="is_active"
           header="Status"
-          style={{ width: "18%" }}
+          style={{ width: "25%" }}
           body={(row) => (
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -230,6 +230,7 @@ function AnimalTypesTab() {
             </span>
           )}
         />
+        <Column field="created_at" header="Date" sortable style={{ width: "25%" }} body={(rowData) => rowData.created_at ? rowData.created_at.split('T')[0] : ''}/>
         {canManage && (
           <Column
             header="Actions"

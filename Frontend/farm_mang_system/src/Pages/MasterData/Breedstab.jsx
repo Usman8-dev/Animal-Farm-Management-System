@@ -266,7 +266,7 @@ function BreedsTab() {
         emptyMessage="No breeds yet."
         tableStyle={{ tableLayout: "fixed" }}
       >
-        <Column field="code" header="Code" sortable style={{ width: "12%" }} />
+        {/* <Column field="code" header="Code" sortable style={{ width: "12%" }} /> */}
         <Column field="name" header="Name" sortable style={{ width: "22%" }} />
         <Column
           field="animalType.name"
@@ -278,13 +278,13 @@ function BreedsTab() {
           field="gestation_days"
           header="Gestation"
           sortable
-          style={{ width: "12%" }}
+          style={{ width: "18%" }}
         />
         <Column
           field="maturity_days"
           header="Maturity"
           sortable
-          style={{ width: "12%" }}
+          style={{ width: "18%" }}
         />
         <Column
           field="is_active"
