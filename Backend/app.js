@@ -9,6 +9,7 @@ const app = express();
 
 // Routers 
 import userRouter from './Routers/userRouter.js';
+import animalRoutes from './Routers/Animalroutes.js'
 
 
 // ─── Security & Parsing Middleware ───────────────────────────────
@@ -25,6 +26,7 @@ app.use(cors({
 
 
 app.use('/user', userRouter);
+app.use('/animal/api', animalRoutes);
 
 // ─── 404 Handler ───────────────────────────────────────────────────
 app.use((req, res) => {
