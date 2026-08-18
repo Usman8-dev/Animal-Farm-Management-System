@@ -87,8 +87,11 @@ model Farms {
   updatedby  Int?
   deletedby  Int?
 
-  members    Farm_Members[]
-  animals    Animal[] 
+  members     Farm_Members[]
+  animals     Animal[] 
+  genders     Gender[]
+  animalTypes AnimalType[]
+  breeds      Breed[]
 
   @@map("farms")
 }
@@ -126,7 +129,9 @@ enum AcquisitionType {
 
 model Gender {
   id      Int      @id @default(autoincrement())
-  code    String   @unique
+  farm_id Int
+  farm    Farms    @relation(fields: [farm_id], references: [id])
+  code    String
   name    String
 
   created_at DateTime     @default(now())
@@ -139,12 +144,15 @@ model Gender {
 
   animals Animal[]
 
+  @@unique([farm_id, code])
   @@map("genders")
 }
 
 model AnimalType {
   id         Int       @id @default(autoincrement())
-  code       String    @unique
+  farm_id    Int
+  farm       Farms     @relation(fields: [farm_id], references: [id])
+  code       String
   name       String
   is_active  Boolean   @default(true)
 
@@ -159,11 +167,14 @@ model AnimalType {
   breeds     Breed[]
   animals    Animal[]
 
+  @@unique([farm_id, code])
   @@map("animal_types")
 }
 
 model Breed {
   id              Int         @id @default(autoincrement())
+  farm_id         Int
+  farm            Farms       @relation(fields: [farm_id], references: [id])
   animal_type_id  Int
   animalType      AnimalType  @relation(fields: [animal_type_id], references: [id])
 
@@ -183,7 +194,7 @@ model Breed {
 
   animals         Animal[]
 
-  @@unique([animal_type_id, code])
+  @@unique([farm_id, animal_type_id, code])
   @@map("breeds")
 }
 

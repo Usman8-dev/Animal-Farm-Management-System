@@ -4,8 +4,9 @@ import prisma from '../prisma/client.js';
 
 const ListAnimalTypes = async (req, res) => {
   try {
+    const farmId = req.user.farmId;
     const animalTypes = await prisma.animalType.findMany({
-        where: { deleted_at: null }, 
+        where: { farm_id: farmId, deleted_at: null }, 
         orderBy: { name: 'asc' },
     });
     return res.status(200).json({ success: true, data: animalTypes });
@@ -17,16 +18,17 @@ const ListAnimalTypes = async (req, res) => {
 
 const CreateAnimalType = async (req, res) => {
         const personId = req.user.id;
+        const farmId = req.user.farmId;
   try {
     const { code, name, is_active } = req.body;
 
-    const existing = await prisma.animalType.findUnique({ where: { code } });
+    const existing = await prisma.animalType.findFirst({ where: { farm_id: farmId, code } });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Animal type code already exists' });
     }
 
     const animalType = await prisma.animalType.create({
-      data: { code, name, is_active: is_active ?? true, createdby: personId, },
+      data: { farm_id: farmId, code, name, is_active: is_active ?? true, createdby: personId, },
     });
 
     return res.status(201).json({ success: true, data: animalType });
@@ -41,14 +43,15 @@ const UpdateAnimalType = async (req, res) => {
   try {
     const { id } = req.params;
     const { code, name, is_active } = req.body;
+    const farmId = req.user.farmId;
 
-    const animalType = await prisma.animalType.findUnique({ where: { id: Number(id) } });
+    const animalType = await prisma.animalType.findFirst({ where: { id: Number(id), farm_id: farmId } });
     if (!animalType) {
       return res.status(404).json({ success: false, message: 'Animal type not found' });
     }
 
     if (code && code !== animalType.code) {
-      const codeTaken = await prisma.animalType.findUnique({ where: { code } });
+      const codeTaken = await prisma.animalType.findFirst({ where: { farm_id: farmId, code, NOT: { id: Number(id) } } });
       if (codeTaken) {
         return res.status(409).json({ success: false, message: 'Animal type code already exists' });
       }
@@ -73,7 +76,7 @@ const DeleteAnimalType = async (req, res) => {
     const animalTypeId = Number(id);
 
     const animalType = await prisma.animalType.findFirst({
-      where: { id: animalTypeId, deleted_at: null },
+      where: { id: animalTypeId, farm_id: req.user.farmId, deleted_at: null },
     });
     if (!animalType) {
       return res.status(404).json({ success: false, message: 'Animal type not found' });
@@ -109,7 +112,7 @@ const GetAnimalType = async (req, res) => {
     const { id } = req.params;
 
     const animalType = await prisma.animalType.findFirst({
-      where: { id: Number(id), deleted_at: null },
+      where: { id: Number(id), farm_id: req.user.farmId, deleted_at: null },
     });
 
     if (!animalType) {
@@ -127,10 +130,12 @@ const GetAnimalType = async (req, res) => {
 
 const ListBreeds = async (req, res) => {
   try {
+    const farmId = req.user.farmId;
     const { animal_type_id } = req.query;
 
     const breeds = await prisma.breed.findMany({
       where: {
+        farm_id: farmId,
         deleted_at: null,
         ...(animal_type_id ? { animal_type_id: Number(animal_type_id) } : {}),
       },
@@ -148,17 +153,18 @@ const ListBreeds = async (req, res) => {
 
 const CreateBreed = async (req, res) => {
     const personId = req.user.id;
+    const farmId = req.user.farmId;
 
   try {
     const { animal_type_id, code, name, gestation_days, maturity_days, is_active } = req.body;
 
-    const animalType = await prisma.animalType.findUnique({ where: { id: Number(animal_type_id) } });
+    const animalType = await prisma.animalType.findFirst({ where: { id: Number(animal_type_id), farm_id: farmId } });
     if (!animalType) {
-      return res.status(422).json({ success: false, message: 'animal_type_id does not exist' });
+      return res.status(422).json({ success: false, message: 'animal_type_id does not exist on this farm' });
     }
 
     const existing = await prisma.breed.findFirst({
-      where: { animal_type_id: Number(animal_type_id), code },
+      where: { farm_id: farmId, animal_type_id: Number(animal_type_id), code },
     });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Breed code already exists for this animal type' });
@@ -166,6 +172,7 @@ const CreateBreed = async (req, res) => {
 
     const breed = await prisma.breed.create({
       data: {
+        farm_id: farmId,
         animal_type_id: Number(animal_type_id),
         code,
         name,
@@ -185,19 +192,20 @@ const CreateBreed = async (req, res) => {
 
 const UpdateBreed = async (req, res) => {
     const personId = req.user.id;
+    const farmId = req.user.farmId;
 
   try {
     const { id } = req.params;
     const { code, name, gestation_days, maturity_days, is_active } = req.body;
 
-    const breed = await prisma.breed.findUnique({ where: { id: Number(id) } });
+    const breed = await prisma.breed.findFirst({ where: { id: Number(id), farm_id: farmId } });
     if (!breed) {
       return res.status(404).json({ success: false, message: 'Breed not found' });
     }
 
     if (code && code !== breed.code) {
       const codeTaken = await prisma.breed.findFirst({
-        where: { animal_type_id: breed.animal_type_id, code, NOT: { id: breed.id } },
+        where: { farm_id: farmId, animal_type_id: breed.animal_type_id, code, NOT: { id: breed.id } },
       });
       if (codeTaken) {
         return res.status(409).json({ success: false, message: 'Breed code already exists for this animal type' });
@@ -230,7 +238,7 @@ const DeleteBreed = async (req, res) => {
     const breedId = Number(id);
 
     const breed = await prisma.breed.findFirst({
-      where: { id: breedId, deleted_at: null },
+      where: { id: breedId, farm_id: req.user.farmId, deleted_at: null },
     });
     if (!breed) {
       return res.status(404).json({ success: false, message: 'Breed not found' });
@@ -264,7 +272,7 @@ const GetBreed = async (req, res) => {
     const { id } = req.params;
 
     const breed = await prisma.breed.findFirst({
-      where: { id: Number(id), deleted_at: null },
+      where: { id: Number(id), farm_id: req.user.farmId, deleted_at: null },
       include: { animalType: { select: { id: true, name: true, code: true } } },
     });
 
@@ -284,7 +292,7 @@ const GetBreed = async (req, res) => {
 const ListGenders = async (req, res) => {
   try {
     const genders = await prisma.gender.findMany({
-      where: { deleted_at: null },
+      where: { farm_id: req.user.farmId, deleted_at: null },
       orderBy: { name: 'asc' },
     });
     return res.status(200).json({ success: true, data: genders });
@@ -299,7 +307,7 @@ const GetGender = async (req, res) => {
     const { id } = req.params;
 
     const gender = await prisma.gender.findFirst({
-      where: { id: Number(id), deleted_at: null },
+      where: { id: Number(id), farm_id: req.user.farmId, deleted_at: null },
     });
 
     if (!gender) {
@@ -317,14 +325,15 @@ const CreateGender = async (req, res) => {
   try {
     const { code, name } = req.body;
     const personId = req.user.id;
+    const farmId = req.user.farmId;
 
-    const existing = await prisma.gender.findUnique({ where: { code } });
+    const existing = await prisma.gender.findFirst({ where: { farm_id: farmId, code } });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Gender code already exists' });
     }
 
     const gender = await prisma.gender.create({
-      data: { code, name, createdby: personId },
+      data: { farm_id: farmId, code, name, createdby: personId },
     });
 
     return res.status(201).json({ success: true, data: gender });
@@ -339,16 +348,19 @@ const UpdateGender = async (req, res) => {
     const { id } = req.params;
     const { code, name } = req.body;
     const personId = req.user.id;
+    const farmId = req.user.farmId;
 
     const gender = await prisma.gender.findFirst({
-      where: { id: Number(id), deleted_at: null },
+      where: { id: Number(id), farm_id: farmId, deleted_at: null },
     });
     if (!gender) {
       return res.status(404).json({ success: false, message: 'Gender not found' });
     }
 
     if (code && code !== gender.code) {
-      const codeTaken = await prisma.gender.findUnique({ where: { code } });
+      const codeTaken = await prisma.gender.findFirst({
+        where: { farm_id: farmId, code, NOT: { id: Number(id) } },
+      });
       if (codeTaken) {
         return res.status(409).json({ success: false, message: 'Gender code already exists' });
       }
@@ -373,7 +385,7 @@ const DeleteGender = async (req, res) => {
     const genderId = Number(id);
 
     const gender = await prisma.gender.findFirst({
-      where: { id: genderId, deleted_at: null },
+      where: { id: genderId, farm_id: req.user.farmId, deleted_at: null },
     });
     if (!gender) {
       return res.status(404).json({ success: false, message: 'Gender not found' });

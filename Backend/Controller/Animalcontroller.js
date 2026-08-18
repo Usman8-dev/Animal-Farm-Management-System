@@ -120,6 +120,7 @@ const CreateAnimal = async (req, res) => {
       animal_type_id: Number(animal_type_id),
       breed_id: Number(breed_id),
       gender_id: Number(gender_id),
+      farm_id: farmId,
     });
 
     await validateLineage({
@@ -195,6 +196,7 @@ const UpdateAnimal = async (req, res) => {
         animal_type_id: Number(animal_type_id ?? existing.animal_type_id),
         breed_id: Number(breed_id ?? existing.breed_id),
         gender_id: Number(gender_id ?? existing.gender_id),
+        farm_id: farmId,
       });
     }
 

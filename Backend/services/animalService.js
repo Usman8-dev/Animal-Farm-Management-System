@@ -46,26 +46,31 @@ async function validateLineage({ farm_id, acquisition_type, mother_id, father_id
 
 /**
  * Confirms animal_type_id / breed_id / gender_id are valid, active,
- * and that the breed actually belongs to the given animal type.
+ * belong to the given farm, and that the breed actually belongs to
+ * the given animal type.
  */
-async function validateClassification({ animal_type_id, breed_id, gender_id }) {
+async function validateClassification({ animal_type_id, breed_id, gender_id, farm_id }) {
+  if (!farm_id) {
+    throw new AppError('farm_id is required to validate classification', 422);
+  }
+
   const [animalType, breed, gender] = await Promise.all([
-    prisma.animalType.findUnique({ where: { id: animal_type_id } }),
-    prisma.breed.findUnique({ where: { id: breed_id } }),
-    prisma.gender.findUnique({ where: { id: gender_id } }),
+    prisma.animalType.findFirst({ where: { id: animal_type_id, farm_id } }),
+    prisma.breed.findFirst({ where: { id: breed_id, farm_id } }),
+    prisma.gender.findFirst({ where: { id: gender_id, farm_id } }),
   ]);
 
   if (!animalType || !animalType.is_active) {
-    throw new AppError('animal_type_id is invalid or inactive', 422);
+    throw new AppError('animal_type_id is invalid or inactive on this farm', 422);
   }
   if (!breed || !breed.is_active) {
-    throw new AppError('breed_id is invalid or inactive', 422);
+    throw new AppError('breed_id is invalid or inactive on this farm', 422);
   }
   if (breed.animal_type_id !== animalType.id) {
     throw new AppError('breed_id does not belong to the given animal_type_id', 422);
   }
   if (!gender) {
-    throw new AppError('gender_id is invalid', 422);
+    throw new AppError('gender_id is invalid on this farm', 422);
   }
 }
 
