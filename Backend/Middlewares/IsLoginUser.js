@@ -26,7 +26,7 @@ const IsLoginUser = async (req, res, next) => {
     // Confirm the person still exists and hasn't been soft-deleted
     const person = await prisma.person.findUnique({
       where: { id: decoded.id },
-      select: { id: true, deleted_at: true },
+      select: { id: true, name: true, deleted_at: true },
     });
 
     if (!person || person.deleted_at) {
@@ -36,7 +36,7 @@ const IsLoginUser = async (req, res, next) => {
       });
     }
 
-    req.user = decoded; // role, farmId, email, email_verified all still come from the token
+    req.user = { ...decoded, name: person.name };
     next();
   } catch (err) {
     console.error('Auth error:', err.message);
