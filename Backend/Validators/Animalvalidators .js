@@ -129,11 +129,13 @@ export const AnimalIdParamValidator = [
 ];
 
 // ── Animal Image ──────────────────────────────────────────────
+// Accepts either a pasted URL (application/json) or an uploaded
+// device image file (multipart/form-data, field "image").
 
 export const AnimalImageValidator = [
   body('url')
+    .optional({ checkFalsy: true })
     .trim()
-    .notEmpty().withMessage('Image URL is required')
     .isURL().withMessage('Must be a valid URL'),
 
   body('caption')
@@ -144,4 +146,14 @@ export const AnimalImageValidator = [
   body('is_primary')
     .optional()
     .isBoolean().withMessage('is_primary must be true or false'),
+
+  // Require either a pasted URL or an uploaded image file
+  body().custom((_, { req }) => {
+    const hasUrl = typeof req.body.url === 'string' && req.body.url.trim().length > 0;
+    const hasFile = !!(req.file && req.file.filename);
+    if (!hasUrl && !hasFile) {
+      throw new Error('Provide an image URL or upload an image file');
+    }
+    return true;
+  }),
 ];

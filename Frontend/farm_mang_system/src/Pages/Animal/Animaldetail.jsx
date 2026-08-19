@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
@@ -11,8 +11,9 @@ import {
   Star,
   X as XIcon,
   PawPrint,
+  Upload,
 } from "lucide-react";
-import api from "../../apis/axios";
+import api, { API_BASE_URL } from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import AnimalFormDialog from "./AnimalFormDialog";
@@ -39,6 +40,12 @@ function AnimalDetail() {
 
   const [newImageUrl, setNewImageUrl] = useState("");
   const [addingImage, setAddingImage] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Uploaded images are stored as relative paths (/uploads/...) and
+  // pasted URLs are absolute — resolve both to a displayable src.
+  const resolveImageUrl = (url) =>
+    url && url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 
 const fetchAnimal = useCallback(async () => {
   try {
@@ -103,6 +110,32 @@ const fetchAnimal = useCallback(async () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUploadImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setAddingImage(true);
+      const formData = new FormData();
+      formData.append("image", file);
+      // First image on the animal automatically becomes the primary one
+      if (animal.images.length === 0) {
+        formData.append("is_primary", "true");
+      }
+      await api.post(`/animal/api/animals/${id}/images`, formData);
+      showToast({ severity: "success", summary: "Uploaded", detail: "Image added." });
+      fetchAnimal();
+    } catch (err) {
+      showToast({
+        severity: "error",
+        summary: "Upload failed",
+        detail: err.response?.data?.message || "Could not upload this image",
+      });
+    } finally {
+      setAddingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -237,7 +270,7 @@ const primaryImage =
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#1f3d2e]/8">
             {primaryImage ? (
-              <img src={primaryImage.url} alt={animal.tag_number} className="h-full w-full object-cover" />
+              <img src={resolveImageUrl(primaryImage.url)} alt={animal.tag_number} className="h-full w-full object-contain" />
             ) : (
               <PawPrint size={26} className="text-[#1f3d2e]/40" />
             )}
@@ -380,7 +413,7 @@ const primaryImage =
             <div className="grid grid-cols-2 gap-2 mb-4">
               {animal.images.map((img) => (
                 <div key={img.id} className="group relative aspect-square overflow-hidden rounded-lg border border-[#e6e2d6]">
-                  <img src={img.url} alt={img.caption || animal.tag_number} className="h-full w-full object-cover" />
+                  <img src={resolveImageUrl(img.url)} alt={img.caption || animal.tag_number} className="h-full w-full object-contain" />
                   {img.is_primary && (
                     <span className="absolute left-1.5 top-1.5 rounded-full bg-[#1f3d2e] p-1">
                       <Star size={11} className="text-[#e3c55c]" fill="#e3c55c" />
@@ -414,18 +447,36 @@ const primaryImage =
           )}
 
           {canManage && (
-            <div className="flex gap-2">
-              <InputText
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
-                placeholder="Paste image URL"
-                className="field-input flex-1 rounded-lg px-3 py-2 text-sm"
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <InputText
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="Paste image URL"
+                  className="field-input flex-1 rounded-lg px-3 py-2 text-sm"
+                />
+                <Button
+                  icon={<Plus size={16} />}
+                  onClick={handleAddImage}
+                  loading={addingImage}
+                  className="!bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !px-3"
+                />
+              </div>
+
+              {/* Hidden file picker — opened by the "Upload from device" button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUploadImage}
               />
               <Button
-                icon={<Plus size={16} />}
-                onClick={handleAddImage}
+                label="Upload from device"
+                icon={<Upload size={16} />}
+                onClick={() => fileInputRef.current?.click()}
                 loading={addingImage}
-                className="!bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !px-3"
+                className="!w-full !justify-center !bg-white !border-[#e6e2d6] !text-[#1f3d2e] hover:!bg-[#FAF8F2] !rounded-lg !text-sm !font-medium"
               />
             </div>
           )}

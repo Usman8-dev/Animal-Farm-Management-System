@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { IsLoginUser } from '../Middlewares/IsLoginUser.js';
 import { authorizeRoles } from '../Middlewares/Authorizeroles.js'; // see note at bottom
 import { validate } from '../Middlewares/validate.js';
+import { uploadImage } from '../Middlewares/upload.js';
 
 import {
   AnimalTypeValidator,
@@ -85,8 +86,10 @@ router.delete('/animals/:id', authorizeRoles('owner', 'manager'), AnimalIdParamV
 router.get('/animals/:id/offspring', AnimalIdParamValidator, validate, GetOffspring);
 
 // ── Animal Images ────────────────────────────────────────────
+// Accepts either a pasted URL (application/json) or a device image
+// file (multipart/form-data with field name "image").
 
-router.post('/animals/:id/images', authorizeRoles('owner', 'manager', 'worker'), AnimalIdParamValidator, AnimalImageValidator, validate, AddAnimalImage
+router.post('/animals/:id/images', authorizeRoles('owner', 'manager', 'worker'), uploadImage.single('image'), AnimalIdParamValidator, AnimalImageValidator, validate, AddAnimalImage
 );
 
 router.put('/animals/:id/images/:imageId/primary', authorizeRoles('owner', 'manager', 'worker'), SetPrimaryImage);

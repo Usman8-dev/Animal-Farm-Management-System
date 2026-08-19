@@ -317,7 +317,26 @@ const AddAnimalImage = async (req, res) => {
     const farmId = req.user.farmId;
     const { id } = req.params;
     const animalId = Number(id);
-    const { url, caption, is_primary } = req.body;
+    const { caption } = req.body;
+    const personId = req.user.id;
+
+
+    // Support both a pasted URL (application/json) and a device image
+    // file (multipart/form-data handled by multer middleware).
+    const url = req.file
+      ? `/uploads/animals/${req.file.filename}`
+      : (req.body.url || '').trim();
+
+    if (!url) {
+      return res.status(422).json({ success: false, message: 'Provide an image URL or upload an image file' });
+    }
+
+    // In multipart form-data, booleans arrive as strings ("true"/"1")
+    let isPrimary = req.body.is_primary;
+    if (typeof isPrimary === 'string') {
+      isPrimary = isPrimary === 'true' || isPrimary === '1';
+    }
+    isPrimary = !!isPrimary;
 
     const animal = await prisma.animal.findFirst({
       where: { id: animalId, farm_id: farmId, deleted_at: null },
@@ -326,7 +345,7 @@ const AddAnimalImage = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Animal not found' });
     }
 
-    if (is_primary) {
+    if (isPrimary) {
       await prisma.animalImage.updateMany({
         where: { animal_id: animalId },
         data: { is_primary: false },
@@ -334,11 +353,17 @@ const AddAnimalImage = async (req, res) => {
     }
 
     const image = await prisma.animalImage.create({
-      data: { animal_id: animalId, url, caption, is_primary: !!is_primary },
+      data: { animal_id: animalId, url, caption, is_primary: isPrimary, createdby: personId },
     });
 
     return res.status(201).json({ success: true, data: image });
   } catch (err) {
+    // Best-effort cleanup of the uploaded file if the DB write failed
+    if (req.file && req.file.path) {
+      import('fs').then((fs) => {
+        fs.unlink(req.file.path, () => {});
+      });
+    }
     console.error('AddAnimalImage error:', err);
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }

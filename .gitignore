@@ -77,3 +77,9 @@ Thumbs.db
 **/.claude/
 **/.windsurf/
 **/generated/
+
+# =========================================================================
+# 🖼️ USER UPLOADS
+# =========================================================================
+# Uploaded animal images are stored locally and must never be committed
+**/uploads/
