@@ -51,6 +51,8 @@ import VerifyEmail from "./Pages/Auth/Verifyemail";
 import AnimalTypesTab from "./Pages/MasterData/Animaltypestab";
 import BreedsTab from "./Pages/MasterData/Breedstab";
 import GendersTab from "./Pages/MasterData/GendersTab";
+import AnimalsList from "./Pages/Animal/Animalslist";
+import AnimalDetail from "./Pages/Animal/Animaldetail";
 function App() {
   return (
     <div>
@@ -75,6 +77,8 @@ function App() {
                     <Route path="/master-data/animal-types" element={<AnimalTypesTab />} />
                     <Route path="/master-data/breeds" element={<BreedsTab />} />
                     <Route path="/master-data/genders" element={<GendersTab />} />
+                    <Route path="/animals" element={<AnimalsList/>} />
+                    <Route path="/animals/:id" element={<AnimalDetail />} />
 
               </Route>
             </Routes>

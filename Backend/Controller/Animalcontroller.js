@@ -384,6 +384,7 @@ const SetPrimaryImage = async (req, res) => {
 const DeleteAnimalImage = async (req, res) => {
   try {
     const farmId = req.user.farmId;
+    const personId = req.user.id;
     const { id, imageId } = req.params;
 
     const animal = await prisma.animal.findFirst({
@@ -394,13 +395,42 @@ const DeleteAnimalImage = async (req, res) => {
     }
 
     const image = await prisma.animalImage.findFirst({
-      where: { id: Number(imageId), animal_id: Number(id) },
+      where: {
+        id: Number(imageId),
+        animal_id: Number(id),
+        deleted_at: null,
+      },
     });
     if (!image) {
       return res.status(404).json({ success: false, message: 'Image not found' });
     }
 
-    await prisma.animalImage.delete({ where: { id: Number(imageId) } });
+    // Soft delete only
+    await prisma.animalImage.update({
+      where: { id: Number(imageId) },
+      data: {
+        deleted_at: new Date(),
+        deletedby: personId, // only if this column exists on AnimalImage
+      },
+    });
+
+    // Optional: if this was the primary image, promote another one
+    if (image.is_primary) {
+      const nextImage = await prisma.animalImage.findFirst({
+        where: {
+          animal_id: Number(id),
+          deleted_at: null,
+          id: { not: Number(imageId) },
+        },
+        orderBy: { created_at: 'asc' },
+      });
+      if (nextImage) {
+        await prisma.animalImage.update({
+          where: { id: nextImage.id },
+          data: { is_primary: true },
+        });
+      }
+    }
 
     return res.status(200).json({ success: true, message: 'Image deleted' });
   } catch (err) {
