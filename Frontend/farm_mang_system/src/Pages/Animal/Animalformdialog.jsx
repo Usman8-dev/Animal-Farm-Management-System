@@ -31,17 +31,6 @@ const EMPTY_VALUES = {
 const isFemaleGender = (name) => name?.trim().toLowerCase() === "female";
 const isMaleGender = (name) => name?.trim().toLowerCase() === "male";
 
-/**
- * Shared Add/Edit form used by both the Animals list page and the
- * Animal detail page, so the ~250 lines of form logic live in one place.
- *
- * Props:
- *  - visible, onHide
- *  - editingAnimal: the full animal object being edited, or null for create
- *  - animalTypes, breeds, genders, allAnimals: reference data (already fetched by parent)
- *  - onSaved(savedAnimal): called after a successful create/update
- *  - saving, onSubmitForm(payload): parent owns the actual API call
- */
 function AnimalFormDialog({
   visible,
   onHide,
@@ -60,6 +49,7 @@ function AnimalFormDialog({
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors },
   } = useForm({
@@ -91,6 +81,18 @@ function AnimalFormDialog({
       reset(EMPTY_VALUES);
     }
   }, [visible, editingAnimal, reset]);
+
+  // FIX: when switching to PURCHASED, the Mother/Father dropdowns disappear
+  // from view but react-hook-form still holds their old values — which then
+  // silently fails yup validation (the error has nowhere to render, since
+  // the fields showing it are hidden). Clearing them here keeps form state
+  // in sync with what's actually visible.
+  useEffect(() => {
+    if (watchedAcquisition === "PURCHASED") {
+      setValue("mother_id", null);
+      setValue("father_id", null);
+    }
+  }, [watchedAcquisition, setValue]);
 
   const typeOptions = animalTypes.map((t) => ({ label: t.name, value: t.id }));
   const breedOptions = breeds
