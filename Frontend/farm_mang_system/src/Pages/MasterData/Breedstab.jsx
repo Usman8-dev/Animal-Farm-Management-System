@@ -10,7 +10,7 @@ import { Dropdown } from "primereact/dropdown";
 import { InputSwitch } from "primereact/inputswitch";
 import { Button } from "primereact/button";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import api from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
@@ -142,7 +142,7 @@ function BreedsTab() {
       message: `Delete "${row.name}"? This can't be undone.`,
       header: "Confirm deletion",
       icon: "pi pi-exclamation-triangle",
-      acceptClassName: "!bg-[#b3452d] !border-[#b3452d]",
+      acceptClassName: "!bg-[var(--danger)] !border-[var(--danger)]",
       accept: async () => {
         try {
           await api.delete(`/animal/api/breeds/${row.id}`);
@@ -172,86 +172,156 @@ function BreedsTab() {
         .font-display { font-family: 'Fraunces', serif; }
 
         .p-datatable .p-datatable-thead > tr > th {
-          background: #faf8f2;
-          color: #66716a;
+          background: var(--bg-muted);
+          color: var(--text-muted);
           font-size: 0.78rem;
           text-transform: uppercase;
           letter-spacing: 0.03em;
-          border-color: #e6e2d6;
+          border-color: var(--border);
           padding: 0.75rem 1rem;
         }
         .p-datatable .p-datatable-tbody > tr > td {
-          border-color: #e6e2d6;
+          border-color: var(--border);
           padding: 0.75rem 1rem;
           font-size: 0.88rem;
-          color: #1b241d;
+          color: var(--text);
+          background: var(--bg-card);
         }
-        .p-datatable .p-datatable-tbody > tr:hover {
-          background: #faf8f2;
+        .p-datatable .p-datatable-tbody > tr:hover > td {
+          background: var(--bg-muted);
         }
-        .p-paginator {
-          background: transparent;
-          border: none;
-          padding-top: 1rem;
+        .p-datatable {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 0.75rem;
+          overflow: hidden;
         }
-        .field-input, .field-input.p-inputnumber-input {
-          background: #fdfcf9;
-          border: 1px solid #e6e2d6;
+       /* Paginator */
+.p-paginator {
+  background: transparent !important;
+  border: none !important;
+  padding-top: 1rem;
+  color: var(--text-muted) !important;
+}
+
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-last,
+.p-paginator .p-dropdown,
+.p-paginator .p-dropdown-label {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.p-paginator .p-highlight {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+}
+        .field-input,
+        .field-input.p-inputnumber-input {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          color: var(--text);
         }
+        .field-input::placeholder { color: var(--text-muted); }
         .field-input:focus {
           outline: none;
-          border-color: #3c6650 !important;
-          box-shadow: 0 0 0 3px rgba(60,102,80,0.14) !important;
+          border-color: var(--primary-hover) !important;
+          box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
         }
-        .field-invalid { border-color: #b3452d !important; }
+        html.dark .field-input:focus {
+          box-shadow: 0 0 0 3px rgba(74, 124, 98, 0.25) !important;
+        }
+        .field-invalid { border-color: var(--danger) !important; }
         .dropdown-field.p-dropdown {
-          background: #fdfcf9;
-          border: 1px solid #e6e2d6;
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
           border-radius: 0.5rem;
+          color: var(--text);
         }
         .dropdown-field.p-dropdown.p-focus {
-          border-color: #3c6650 !important;
-          box-shadow: 0 0 0 3px rgba(60,102,80,0.14) !important;
+          border-color: var(--primary-hover) !important;
+          box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
         }
         .dropdown-field .p-dropdown-label {
           padding: 0.625rem 0.75rem;
           font-size: 0.875rem;
-          color: #1b241d;
+          color: var(--text);
+        }
+        .p-dropdown-panel {
+          background: var(--bg-card);
+          border-color: var(--border);
+          color: var(--text);
+        }
+        .p-dropdown-item { color: var(--text); }
+        .p-dropdown-item:hover,
+        .p-dropdown-item.p-highlight {
+          background: var(--bg-muted);
+          color: var(--text);
         }
         .p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
-          background: #1f3d2e !important;
+          background: var(--primary) !important;
+        }
+
+        .breeds-dialog .p-dialog-header {
+          background: var(--bg-card);
+          color: var(--text-heading);
+          border-bottom: 1px solid var(--border);
+        }
+        .breeds-dialog .p-dialog-content {
+          background: var(--bg-card);
+          color: var(--text);
+        }
+        .breeds-dialog .p-dialog-header-icon {
+          color: var(--text-muted);
         }
       `}</style>
 
       <ConfirmDialog />
 
       <div className="mb-6">
-        <h1 className="font-display font-semibold text-2xl text-[#14261d] mb-1">
+        <h1
+          className="font-display mb-1 text-2xl font-semibold"
+          style={{ color: "var(--text-heading)" }}
+        >
           Breeds
         </h1>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[#66716a]">
-          Breeds within each animal type, including gestation and maturity timelines.
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+          Breeds within each animal type, including gestation and maturity
+          timelines.
         </p>
         {canManage && (
           <Button
             label="Add Breed"
             icon={<Plus size={16} className="mr-1.5" />}
             onClick={openCreate}
-            className="!bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !text-sm !font-semibold !px-4 !py-2"
+            className="!rounded-lg !px-4 !py-2 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
           />
         )}
       </div>
 
-      {/* Search filter – same as Animal Types */}
       <div className="relative mb-4 max-w-xs">
+        {/* <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2"
+          style={{ color: "var(--text-muted)" }}
+        /> */}
         <InputText
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder="Search"
-          className="field-input w-full rounded-lg pl-9 pr-3 py-2.5 text-sm"
+          className="field-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm"
         />
       </div>
 
@@ -266,7 +336,6 @@ function BreedsTab() {
         emptyMessage="No breeds yet."
         tableStyle={{ tableLayout: "fixed" }}
       >
-        {/* <Column field="code" header="Code" sortable style={{ width: "12%" }} /> */}
         <Column field="name" header="Name" sortable style={{ width: "22%" }} />
         <Column
           field="animalType.name"
@@ -292,11 +361,20 @@ function BreedsTab() {
           style={{ width: "12%" }}
           body={(row) => (
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+              style={
                 row.is_active
-                  ? "bg-[#1f3d2e]/10 text-[#1f3d2e]"
-                  : "bg-[#66716a]/10 text-[#66716a]"
-              }`}
+                  ? {
+                      backgroundColor:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color: "var(--primary)",
+                    }
+                  : {
+                      backgroundColor:
+                        "color-mix(in srgb, var(--text-muted) 12%, transparent)",
+                      color: "var(--text-muted)",
+                    }
+              }
             >
               {row.is_active ? "Active" : "Inactive"}
             </span>
@@ -310,13 +388,27 @@ function BreedsTab() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => openEdit(row)}
-                  className="p-1.5 text-[#66716a] hover:text-[#1f3d2e] transition-colors"
+                  className="p-1.5 transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--primary)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--text-muted)")
+                  }
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => confirmDelete(row)}
-                  className="p-1.5 text-[#66716a] hover:text-[#b3452d] transition-colors"
+                  className="p-1.5 transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--danger)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--text-muted)")
+                  }
                 >
                   <Trash2 size={16} />
                 </button>
@@ -331,13 +423,17 @@ function BreedsTab() {
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         style={{ width: "30rem" }}
+        className="breeds-dialog"
       >
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col gap-4 pt-2"
         >
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+            <label
+              className="text-[0.8rem] font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               Animal Type
             </label>
             <Controller
@@ -356,7 +452,7 @@ function BreedsTab() {
               )}
             />
             {errors.animal_type_id && (
-              <small className="text-[#b3452d] text-xs">
+              <small className="text-xs" style={{ color: "var(--danger)" }}>
                 {errors.animal_type_id.message}
               </small>
             )}
@@ -364,7 +460,10 @@ function BreedsTab() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+              <label
+                className="text-[0.8rem] font-semibold"
+                style={{ color: "var(--text)" }}
+              >
                 Code
               </label>
               <InputText
@@ -375,13 +474,16 @@ function BreedsTab() {
                 }`}
               />
               {errors.code && (
-                <small className="text-[#b3452d] text-xs">
+                <small className="text-xs" style={{ color: "var(--danger)" }}>
                   {errors.code.message}
                 </small>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+              <label
+                className="text-[0.8rem] font-semibold"
+                style={{ color: "var(--text)" }}
+              >
                 Name
               </label>
               <InputText
@@ -392,7 +494,7 @@ function BreedsTab() {
                 }`}
               />
               {errors.name && (
-                <small className="text-[#b3452d] text-xs">
+                <small className="text-xs" style={{ color: "var(--danger)" }}>
                   {errors.name.message}
                 </small>
               )}
@@ -401,7 +503,10 @@ function BreedsTab() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+              <label
+                className="text-[0.8rem] font-semibold"
+                style={{ color: "var(--text)" }}
+              >
                 Gestation (days)
               </label>
               <Controller
@@ -419,13 +524,16 @@ function BreedsTab() {
                 )}
               />
               {errors.gestation_days && (
-                <small className="text-[#b3452d] text-xs">
+                <small className="text-xs" style={{ color: "var(--danger)" }}>
                   {errors.gestation_days.message}
                 </small>
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+              <label
+                className="text-[0.8rem] font-semibold"
+                style={{ color: "var(--text)" }}
+              >
                 Maturity (days)
               </label>
               <Controller
@@ -443,7 +551,7 @@ function BreedsTab() {
                 )}
               />
               {errors.maturity_days && (
-                <small className="text-[#b3452d] text-xs">
+                <small className="text-xs" style={{ color: "var(--danger)" }}>
                   {errors.maturity_days.message}
                 </small>
               )}
@@ -451,7 +559,10 @@ function BreedsTab() {
           </div>
 
           <div className="flex items-center justify-between">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+            <label
+              className="text-[0.8rem] font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               Active
             </label>
             <InputSwitch
@@ -464,7 +575,11 @@ function BreedsTab() {
             type="submit"
             label={saving ? "Saving…" : "Save"}
             loading={saving}
-            className="!mt-2 !w-full !justify-center !bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !py-2.5 !font-semibold !text-sm"
+            className="!mt-2 !w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
           />
         </form>
       </Dialog>

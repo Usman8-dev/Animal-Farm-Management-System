@@ -1,1 +1,40 @@
 @import "tailwindcss";
+
+module.exports = {
+  darkMode: "class",
+};
+
+:root {
+  --bg-page: #faf8f2;
+  --bg-card: #ffffff;
+  --bg-muted: #f4f1e9;
+  --border: #e6e2d6;
+  --text: #1b241d;
+  --text-heading: #14261d;
+  --text-muted: #66716a;
+  --primary: #1f3d2e;
+  --primary-hover: #3c6650;
+  --danger: #b3452d;
+  --navbar-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+}
+
+html.dark {
+  --bg-page: #0f1612;
+  --bg-card: #1a221c;
+  --bg-muted: #151c18;
+  --border: #2a352e;
+  --text: #e6e2d6;
+  --text-heading: #f5f2eb;
+  --text-muted: #9aa39c;
+  --primary: #4a7c62;
+  --primary-hover: #5f9476;
+  --danger: #d4725a;
+  --navbar-bg: #141b16;
+  --sidebar-bg: #141b16;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text);
+}

@@ -24,7 +24,8 @@ function AnimalDetail() {
   const navigate = useNavigate();
   const showToast = useToast();
   const { user } = useAuth();
-  const canManage = user?.role === "owner" || user?.role === "manager" || user?.role === "worker";
+  const canManage =
+    user?.role === "owner" || user?.role === "manager" || user?.role === "worker";
   const canDelete = user?.role === "owner" || user?.role === "manager";
 
   const [animal, setAnimal] = useState(null);
@@ -43,36 +44,33 @@ function AnimalDetail() {
   const [addingImage, setAddingImage] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Uploaded images are stored as relative paths (/uploads/...) and
-  // pasted URLs are absolute — resolve both to a displayable src.
   const resolveImageUrl = (url) =>
     url && url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 
-const fetchAnimal = useCallback(async () => {
-  try {
-    setLoading(true);
-    const [animalRes, offspringRes] = await Promise.all([
-      api.get(`/animal/api/animals/${id}`),
-      api.get(`/animal/api/animals/${id}/offspring`),
-    ]);
+  const fetchAnimal = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [animalRes, offspringRes] = await Promise.all([
+        api.get(`/animal/api/animals/${id}`),
+        api.get(`/animal/api/animals/${id}/offspring`),
+      ]);
 
-    const data = animalRes.data.data;
-    // Ignore soft-deleted images even if API still sends them
-    setAnimal({
-      ...data,
-      images: (data.images || []).filter((img) => !img.deleted_at),
-    });
-    setOffspring(offspringRes.data.data);
-  } catch (err) {
-    showToast({
-      severity: "error",
-      summary: "Failed to load",
-      detail: err.response?.data?.message || "Could not load this animal",
-    });
-  } finally {
-    setLoading(false);
-  }
-}, [id, showToast]);
+      const data = animalRes.data.data;
+      setAnimal({
+        ...data,
+        images: (data.images || []).filter((img) => !img.deleted_at),
+      });
+      setOffspring(offspringRes.data.data);
+    } catch (err) {
+      showToast({
+        severity: "error",
+        summary: "Failed to load",
+        detail: err.response?.data?.message || "Could not load this animal",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [id, showToast]);
 
   const fetchRefData = useCallback(async () => {
     try {
@@ -87,7 +85,7 @@ const fetchAnimal = useCallback(async () => {
       setGenders(gendersRes.data.data);
       setAllAnimals(animalsRes.data.data);
     } catch {
-      // silent — only blocks the edit dialog, not the page itself
+      // silent
     }
   }, []);
 
@@ -107,7 +105,10 @@ const fetchAnimal = useCallback(async () => {
       showToast({
         severity: "error",
         summary: "Save failed",
-        detail: err.response?.data?.message || err.response?.data?.errors?.[0] || "Something went wrong",
+        detail:
+          err.response?.data?.message ||
+          err.response?.data?.errors?.[0] ||
+          "Something went wrong",
       });
     } finally {
       setSaving(false);
@@ -121,7 +122,6 @@ const fetchAnimal = useCallback(async () => {
       setAddingImage(true);
       const formData = new FormData();
       formData.append("image", file);
-      // First image on the animal automatically becomes the primary one
       if (animal.images.length === 0) {
         formData.append("is_primary", "true");
       }
@@ -145,7 +145,7 @@ const fetchAnimal = useCallback(async () => {
       message: `Delete "${animal.tag_number}"? This can't be undone.`,
       header: "Confirm deletion",
       icon: "pi pi-exclamation-triangle",
-      acceptClassName: "!bg-[#b3452d] !border-[#b3452d]",
+      acceptClassName: "!bg-[var(--danger)] !border-[var(--danger)]",
       accept: async () => {
         try {
           await api.delete(`/animal/api/animals/${animal.id}`);
@@ -183,67 +183,67 @@ const fetchAnimal = useCallback(async () => {
     }
   };
 
+  const handleSetPrimary = async (imageId) => {
+    const previousImages = animal.images;
+    setAnimal((prev) => ({
+      ...prev,
+      images: prev.images.map((img) => ({
+        ...img,
+        is_primary: img.id === imageId,
+      })),
+    }));
 
-const handleSetPrimary = async (imageId) => {
-  const previousImages = animal.images;
-  setAnimal((prev) => ({
-    ...prev,
-    images: prev.images.map((img) => ({
-      ...img,
-      is_primary: img.id === imageId,
-    })),
-  }));
+    try {
+      await api.put(`/animal/api/animals/${id}/images/${imageId}/primary`);
+      fetchAnimal();
+    } catch (err) {
+      setAnimal((prev) => ({ ...prev, images: previousImages }));
+      showToast({
+        severity: "error",
+        summary: "Failed",
+        detail: err.response?.data?.message || "Could not set primary image",
+      });
+    }
+  };
 
-  try {
-    await api.put(`/animal/api/animals/${id}/images/${imageId}/primary`);
-    fetchAnimal();
-  } catch (err) {
-    setAnimal((prev) => ({ ...prev, images: previousImages }));
-    showToast({
-      severity: "error",
-      summary: "Failed",
-      detail: err.response?.data?.message || "Could not set primary image",
-    });
-  }
-};
+  const handleDeleteImage = async (imageId) => {
+    const previousImages = animal.images;
+    setAnimal((prev) => ({
+      ...prev,
+      images: prev.images.filter((img) => img.id !== imageId),
+    }));
 
-
-const handleDeleteImage = async (imageId) => {
-  const previousImages = animal.images;
-
-  // Remove immediately
-  setAnimal((prev) => ({
-    ...prev,
-    images: prev.images.filter((img) => img.id !== imageId),
-  }));
-
-  try {
-    await api.delete(`/animal/api/animals/${id}/images/${imageId}`);
-    // Do NOT call fetchAnimal() here — it can bring soft-deleted images back
-  } catch (err) {
-    setAnimal((prev) => ({ ...prev, images: previousImages }));
-    showToast({
-      severity: "error",
-      summary: "Failed",
-      detail: err.response?.data?.message || "Could not delete this image",
-    });
-  }
-};
+    try {
+      await api.delete(`/animal/api/animals/${id}/images/${imageId}`);
+    } catch (err) {
+      setAnimal((prev) => ({ ...prev, images: previousImages }));
+      showToast({
+        severity: "error",
+        summary: "Failed",
+        detail: err.response?.data?.message || "Could not delete this image",
+      });
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#e6e2d6] border-t-[#1f3d2e]" />
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2"
+          style={{
+            borderColor: "var(--border)",
+            borderTopColor: "var(--primary)",
+          }}
+        />
       </div>
     );
   }
 
   if (!animal) return null;
 
-//   const primaryImage = animal.images.find((img) => img.is_primary) || animal.images[0];
-const visibleImages = (animal.images || []).filter((img) => !img.deleted_at);
-const primaryImage =
-  visibleImages.find((img) => img.is_primary) || visibleImages[0];
+  const visibleImages = (animal.images || []).filter((img) => !img.deleted_at);
+  const primaryImage =
+    visibleImages.find((img) => img.is_primary) || visibleImages[0];
 
   return (
     <div className="font-sans">
@@ -251,8 +251,20 @@ const primaryImage =
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
         * { font-family: 'Inter', sans-serif; }
         .font-display { font-family: 'Fraunces', serif; }
-        .field-input { background: #fdfcf9; border: 1px solid #e6e2d6; }
-        .field-input:focus { outline: none; border-color: #3c6650 !important; box-shadow: 0 0 0 3px rgba(60,102,80,0.14) !important; }
+        .field-input {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          color: var(--text);
+        }
+        .field-input::placeholder { color: var(--text-muted); }
+        .field-input:focus {
+          outline: none;
+          border-color: var(--primary-hover) !important;
+          box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
+        }
+        html.dark .field-input:focus {
+          box-shadow: 0 0 0 3px rgba(74, 124, 98, 0.25) !important;
+        }
       `}</style>
 
       <ConfirmDialog />
@@ -260,7 +272,10 @@ const primaryImage =
       {/* Back link */}
       <button
         onClick={() => navigate("/animals")}
-        className="mb-5 flex items-center gap-1.5 text-sm font-medium text-[#66716a] hover:text-[#1f3d2e] transition-colors"
+        className="mb-5 flex items-center gap-1.5 text-sm font-medium transition-colors"
+        style={{ color: "var(--text-muted)" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--primary)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
       >
         <ArrowLeft size={16} />
         Back to Animals
@@ -269,18 +284,28 @@ const primaryImage =
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#1f3d2e]/8">
+          <div
+            className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+            style={{ backgroundColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+          >
             {primaryImage ? (
-              <img src={resolveImageUrl(primaryImage.url)} alt={animal.tag_number} className="h-full w-full object-contain" />
+              <img
+                src={resolveImageUrl(primaryImage.url)}
+                alt={animal.tag_number}
+                className="h-full w-full object-contain"
+              />
             ) : (
-              <PawPrint size={26} className="text-[#1f3d2e]/40" />
+              <PawPrint size={26} style={{ color: "var(--primary)", opacity: 0.4 }} />
             )}
           </div>
           <div>
-            <h1 className="font-display font-semibold text-2xl text-[#14261d] mb-0.5">
+            <h1
+              className="font-display mb-0.5 text-2xl font-semibold"
+              style={{ color: "var(--text-heading)" }}
+            >
               {animal.name || animal.tag_number}
             </h1>
-            <p className="text-sm text-[#66716a]">
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
               Tag #{animal.tag_number} · {animal.animalType?.name} · {animal.breed?.name}
             </p>
           </div>
@@ -291,7 +316,11 @@ const primaryImage =
             label="Family Tree"
             icon={<GitBranch size={15} className="mr-1.5" />}
             onClick={() => navigate(`/animals/${id}/family-tree`)}
-            className="!bg-[#1f3d2e] !border-[#1f3d2e] !text-white hover:!bg-[#3c6650] !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
+            className="!rounded-lg !px-3.5 !py-2 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
           />
           {canManage && (
             <>
@@ -299,14 +328,24 @@ const primaryImage =
                 label="Edit"
                 icon={<Pencil size={15} className="mr-1.5" />}
                 onClick={() => setDialogOpen(true)}
-                className="!bg-white !border-[#e6e2d6] !text-[#1b241d] hover:!bg-[#faf8f2] !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
+                className="!rounded-lg !px-3.5 !py-2 !text-sm !font-semibold"
+                style={{
+                  backgroundColor: "var(--bg-card)",
+                  borderColor: "var(--border)",
+                  color: "var(--text)",
+                }}
               />
               {canDelete && (
                 <Button
                   label="Delete"
                   icon={<Trash2 size={15} className="mr-1.5" />}
                   onClick={handleDeleteAnimal}
-                  className="!bg-white !border-[#e6e2d6] !text-[#b3452d] hover:!bg-[#b3452d]/5 !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
+                  className="!rounded-lg !px-3.5 !py-2 !text-sm !font-semibold"
+                  style={{
+                    backgroundColor: "var(--bg-card)",
+                    borderColor: "var(--border)",
+                    color: "var(--danger)",
+                  }}
                 />
               )}
             </>
@@ -314,77 +353,136 @@ const primaryImage =
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* ── Left column: overview + lineage ─────────────────── */}
-        <div className="lg:col-span-2 flex flex-col gap-5">
-          {/* Overview card */}
-          <div className="rounded-2xl border border-[#e6e2d6] bg-white p-6">
-            <h2 className="font-display font-semibold text-lg text-[#14261d] mb-4">Overview</h2>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {/* Left column */}
+        <div className="flex flex-col gap-5 lg:col-span-2">
+          {/* Overview */}
+          <div
+            className="rounded-2xl border p-6"
+            style={{
+              backgroundColor: "var(--bg-card)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <h2
+              className="font-display mb-4 text-lg font-semibold"
+              style={{ color: "var(--text-heading)" }}
+            >
+              Overview
+            </h2>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-              <div>
-                <dt className="text-[#66716a] mb-0.5">Gender</dt>
-                <dd className="font-medium text-[#1b241d]">{animal.gender?.name || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-[#66716a] mb-0.5">Birth Date</dt>
-                <dd className="font-medium text-[#1b241d]">
-                  {animal.birth_date ? new Date(animal.birth_date).toLocaleDateString() : "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[#66716a] mb-0.5">Acquisition</dt>
-                <dd className="font-medium text-[#1b241d]">
-                  {animal.acquisition_type === "BORN_IN_FARM" ? "Born in Farm" : "Purchased"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[#66716a] mb-0.5">Acquired On</dt>
-                <dd className="font-medium text-[#1b241d]">
-                  {animal.acquired_on ? new Date(animal.acquired_on).toLocaleDateString() : "—"}
-                </dd>
-              </div>
+              {[
+                { label: "Gender", value: animal.gender?.name },
+                {
+                  label: "Birth Date",
+                  value: animal.birth_date
+                    ? new Date(animal.birth_date).toLocaleDateString()
+                    : null,
+                },
+                {
+                  label: "Acquisition",
+                  value:
+                    animal.acquisition_type === "BORN_IN_FARM"
+                      ? "Born in Farm"
+                      : "Purchased",
+                },
+                {
+                  label: "Acquired On",
+                  value: animal.acquired_on
+                    ? new Date(animal.acquired_on).toLocaleDateString()
+                    : null,
+                },
+              ].map((item) => (
+                <div key={item.label}>
+                  <dt className="mb-0.5" style={{ color: "var(--text-muted)" }}>
+                    {item.label}
+                  </dt>
+                  <dd className="font-medium" style={{ color: "var(--text)" }}>
+                    {item.value || "—"}
+                  </dd>
+                </div>
+              ))}
             </dl>
 
             {animal.notes && (
-              <div className="mt-5 pt-5 border-t border-[#e6e2d6]">
-                <dt className="text-[#66716a] text-sm mb-1">Notes</dt>
-                <p className="text-sm text-[#1b241d] leading-relaxed whitespace-pre-line">{animal.notes}</p>
+              <div
+                className="mt-5 border-t pt-5"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <dt className="mb-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                  Notes
+                </dt>
+                <p
+                  className="whitespace-pre-line text-sm leading-relaxed"
+                  style={{ color: "var(--text)" }}
+                >
+                  {animal.notes}
+                </p>
               </div>
             )}
           </div>
 
-          {/* Lineage card */}
-          <div className="rounded-2xl border border-[#e6e2d6] bg-white p-6">
-            <h2 className="font-display font-semibold text-lg text-[#14261d] mb-4">Lineage</h2>
+          {/* Lineage */}
+          <div
+            className="rounded-2xl border p-6"
+            style={{
+              backgroundColor: "var(--bg-card)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <h2
+              className="font-display mb-4 text-lg font-semibold"
+              style={{ color: "var(--text-heading)" }}
+            >
+              Lineage
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-[#66716a] mb-1.5">Mother</p>
+                <p className="mb-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                  Mother
+                </p>
                 {animal.mother ? (
                   <Link
                     to={`/animals/${animal.mother.id}`}
-                    className="block rounded-lg border border-[#e6e2d6] px-3 py-2.5 text-sm font-medium text-[#1f3d2e] hover:bg-[#faf8f2] transition-colors"
+                    className="block rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors"
+                    style={{
+                      borderColor: "var(--border)",
+                      color: "var(--primary)",
+                    }}
                   >
                     {animal.mother.tag_number}
                     {animal.mother.name ? ` — ${animal.mother.name}` : ""}
                   </Link>
                 ) : (
-                  <p className="rounded-lg border border-dashed border-[#e6e2d6] px-3 py-2.5 text-sm text-[#66716a]">
+                  <p
+                    className="rounded-lg border border-dashed px-3 py-2.5 text-sm"
+                    style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                  >
                     Unknown
                   </p>
                 )}
               </div>
               <div>
-                <p className="text-xs text-[#66716a] mb-1.5">Father</p>
+                <p className="mb-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                  Father
+                </p>
                 {animal.father ? (
                   <Link
                     to={`/animals/${animal.father.id}`}
-                    className="block rounded-lg border border-[#e6e2d6] px-3 py-2.5 text-sm font-medium text-[#1f3d2e] hover:bg-[#faf8f2] transition-colors"
+                    className="block rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors"
+                    style={{
+                      borderColor: "var(--border)",
+                      color: "var(--primary)",
+                    }}
                   >
                     {animal.father.tag_number}
                     {animal.father.name ? ` — ${animal.father.name}` : ""}
                   </Link>
                 ) : (
-                  <p className="rounded-lg border border-dashed border-[#e6e2d6] px-3 py-2.5 text-sm text-[#66716a]">
+                  <p
+                    className="rounded-lg border border-dashed px-3 py-2.5 text-sm"
+                    style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                  >
                     Unknown
                   </p>
                 )}
@@ -392,19 +490,31 @@ const primaryImage =
             </div>
 
             {offspring.length > 0 && (
-              <div className="mt-5 pt-5 border-t border-[#e6e2d6]">
-                <p className="text-xs text-[#66716a] mb-2">Offspring ({offspring.length})</p>
+              <div
+                className="mt-5 border-t pt-5"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                  Offspring ({offspring.length})
+                </p>
                 <div className="flex flex-col gap-1.5">
                   {offspring.map((o) => (
                     <Link
                       key={o.id}
                       to={`/animals/${o.id}`}
-                      className="rounded-lg border border-[#e6e2d6] px-3 py-2 text-sm text-[#1b241d] hover:bg-[#faf8f2] transition-colors"
+                      className="rounded-lg border px-3 py-2 text-sm transition-colors"
+                      style={{
+                        borderColor: "var(--border)",
+                        color: "var(--text)",
+                      }}
                     >
                       {o.tag_number}
                       {o.name ? ` — ${o.name}` : ""}
                       {o.birth_date && (
-                        <span className="text-[#66716a]"> · born {new Date(o.birth_date).toLocaleDateString()}</span>
+                        <span style={{ color: "var(--text-muted)" }}>
+                          {" "}
+                          · born {new Date(o.birth_date).toLocaleDateString()}
+                        </span>
                       )}
                     </Link>
                   ))}
@@ -414,26 +524,49 @@ const primaryImage =
           </div>
         </div>
 
-        {/* ── Right column: images ─────────────────────────────── */}
-        <div className="rounded-2xl border border-[#e6e2d6] bg-white p-6 h-fit">
-          <h2 className="font-display font-semibold text-lg text-[#14261d] mb-4">Photos</h2>
+        {/* Photos */}
+        <div
+          className="h-fit rounded-2xl border p-6"
+          style={{
+            backgroundColor: "var(--bg-card)",
+            borderColor: "var(--border)",
+          }}
+        >
+          <h2
+            className="font-display mb-4 text-lg font-semibold"
+            style={{ color: "var(--text-heading)" }}
+          >
+            Photos
+          </h2>
 
-          {animal.images.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {animal.images.map((img) => (
-                <div key={img.id} className="group relative aspect-square overflow-hidden rounded-lg border border-[#e6e2d6]">
-                  <img src={resolveImageUrl(img.url)} alt={img.caption || animal.tag_number} className="h-full w-full object-contain" />
+          {visibleImages.length > 0 ? (
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              {visibleImages.map((img) => (
+                <div
+                  key={img.id}
+                  className="group relative aspect-square overflow-hidden rounded-lg border"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <img
+                    src={resolveImageUrl(img.url)}
+                    alt={img.caption || animal.tag_number}
+                    className="h-full w-full object-contain"
+                  />
                   {img.is_primary && (
-                    <span className="absolute left-1.5 top-1.5 rounded-full bg-[#1f3d2e] p-1">
+                    <span
+                      className="absolute left-1.5 top-1.5 rounded-full p-1"
+                      style={{ backgroundColor: "var(--primary)" }}
+                    >
                       <Star size={11} className="text-[#e3c55c]" fill="#e3c55c" />
                     </span>
                   )}
                   {canManage && (
-                    <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                       {!img.is_primary && (
                         <button
                           onClick={() => handleSetPrimary(img.id)}
-                          className="rounded-full bg-white/90 p-1.5 text-[#1f3d2e] hover:bg-white"
+                          className="rounded-full bg-white/90 p-1.5 hover:bg-white"
+                          style={{ color: "var(--primary)" }}
                           title="Set as primary"
                         >
                           <Star size={13} />
@@ -441,7 +574,8 @@ const primaryImage =
                       )}
                       <button
                         onClick={() => handleDeleteImage(img.id)}
-                        className="rounded-full bg-white/90 p-1.5 text-[#b3452d] hover:bg-white"
+                        className="rounded-full bg-white/90 p-1.5 hover:bg-white"
+                        style={{ color: "var(--danger)" }}
                         title="Delete image"
                       >
                         <XIcon size={13} />
@@ -452,7 +586,9 @@ const primaryImage =
               ))}
             </div>
           ) : (
-            <p className="mb-4 text-sm text-[#66716a]">No photos yet.</p>
+            <p className="mb-4 text-sm" style={{ color: "var(--text-muted)" }}>
+              No photos yet.
+            </p>
           )}
 
           {canManage && (
@@ -468,11 +604,14 @@ const primaryImage =
                   icon={<Plus size={16} />}
                   onClick={handleAddImage}
                   loading={addingImage}
-                  className="!bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !px-3"
+                  className="!rounded-lg !px-3 !text-white"
+                  style={{
+                    backgroundColor: "var(--primary)",
+                    borderColor: "var(--primary)",
+                  }}
                 />
               </div>
 
-              {/* Hidden file picker — opened by the "Upload from device" button */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -485,7 +624,12 @@ const primaryImage =
                 icon={<Upload size={16} />}
                 onClick={() => fileInputRef.current?.click()}
                 loading={addingImage}
-                className="!w-full !justify-center !bg-white !border-[#e6e2d6] !text-[#1f3d2e] hover:!bg-[#FAF8F2] !rounded-lg !text-sm !font-medium"
+                className="!w-full !justify-center !rounded-lg !text-sm !font-medium"
+                style={{
+                  backgroundColor: "var(--bg-card)",
+                  borderColor: "var(--border)",
+                  color: "var(--primary)",
+                }}
               />
             </div>
           )}
@@ -503,13 +647,8 @@ const primaryImage =
         saving={saving}
         onSubmitForm={handleSubmitForm}
       />
-    
     </div>
-
-    
   );
-  
 }
-
 
 export default AnimalDetail;

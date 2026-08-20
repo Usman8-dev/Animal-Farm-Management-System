@@ -54,10 +54,12 @@ import GendersTab from "./Pages/MasterData/GendersTab";
 import AnimalsList from "./Pages/Animal/Animalslist";
 import AnimalDetail from "./Pages/Animal/Animaldetail";
 import FamilyTreePage from "./Pages/Animal/FamilyTreePage";
+import { ThemeProvider } from "./context/ThemeContext";
 function App() {
   return (
     <div>
       <BrowserRouter>
+      <ThemeProvider>
         <AuthProvider>
           <ToastProvider>
             <Routes>
@@ -86,6 +88,7 @@ function App() {
             </Routes>
           </ToastProvider>
         </AuthProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </div>
   );

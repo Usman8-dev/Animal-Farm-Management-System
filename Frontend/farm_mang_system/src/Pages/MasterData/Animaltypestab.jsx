@@ -8,12 +8,11 @@ import { InputText } from "primereact/inputtext";
 import { InputSwitch } from "primereact/inputswitch";
 import { Button } from "primereact/button";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import api from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { AnimalTypeSchema } from "../../validations/MasterDataSchemas";
-import { Search } from "lucide-react";
 
 function AnimalTypesTab() {
   const showToast = useToast();
@@ -112,7 +111,7 @@ function AnimalTypesTab() {
       message: `Delete "${row.name}"? This can't be undone.`,
       header: "Confirm deletion",
       icon: "pi pi-exclamation-triangle",
-      acceptClassName: "!bg-[#b3452d] !border-[#b3452d]",
+      acceptClassName: "!bg-[var(--danger)] !border-[var(--danger)]",
       accept: async () => {
         try {
           await api.delete(`/animal/api/animal-types/${row.id}`);
@@ -143,44 +142,101 @@ function AnimalTypesTab() {
         .font-display { font-family: 'Fraunces', serif; }
 
         .p-datatable .p-datatable-thead > tr > th {
-          background: #faf8f2;
-          color: #66716a;
+          background: var(--bg-muted);
+          color: var(--text-muted);
           font-size: 0.78rem;
           text-transform: uppercase;
           letter-spacing: 0.03em;
-          border-color: #e6e2d6;
+          border-color: var(--border);
           padding: 0.75rem 1rem;
         }
         .p-datatable .p-datatable-tbody > tr > td {
-          border-color: #e6e2d6;
+          border-color: var(--border);
           padding: 0.75rem 1rem;
           font-size: 0.88rem;
-          color: #1b241d;
+          color: var(--text);
+          background: var(--bg-card);
         }
-        .p-datatable .p-datatable-tbody > tr:hover {
-          background: #faf8f2;
+        .p-datatable .p-datatable-tbody > tr:hover > td {
+          background: var(--bg-muted);
         }
-        .p-paginator {
-          background: transparent;
-          border: none;
-          padding-top: 1rem;
+        .p-datatable {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 0.75rem;
+          overflow: hidden;
         }
-        .field-input { background: #fdfcf9; border: 1px solid #e6e2d6; }
-        .field-input:focus { outline: none; border-color: #3c6650 !important; box-shadow: 0 0 0 3px rgba(60,102,80,0.14) !important; }
-        .field-invalid { border-color: #b3452d !important; }
-        .p-inputswitch.p-inputswitch-checked .p-inputswitch-slider { background: #1f3d2e !important; }
+       /* Paginator */
+.p-paginator {
+  background: transparent !important;
+  border: none !important;
+  padding-top: 1rem;
+  color: var(--text-muted) !important;
+}
+
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-last,
+.p-paginator .p-dropdown,
+.p-paginator .p-dropdown-label {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.p-paginator .p-highlight {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+}
+        .field-input {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          color: var(--text);
+        }
+        .field-input::placeholder { color: var(--text-muted); }
+        .field-input:focus {
+          outline: none;
+          border-color: var(--primary-hover) !important;
+          box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
+        }
+        html.dark .field-input:focus {
+          box-shadow: 0 0 0 3px rgba(74, 124, 98, 0.25) !important;
+        }
+        .field-invalid { border-color: var(--danger) !important; }
+        .p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
+          background: var(--primary) !important;
+        }
+
+        .animal-types-dialog .p-dialog-header {
+          background: var(--bg-card);
+          color: var(--text-heading);
+          border-bottom: 1px solid var(--border);
+        }
+        .animal-types-dialog .p-dialog-content {
+          background: var(--bg-card);
+          color: var(--text);
+        }
+        .animal-types-dialog .p-dialog-header-icon {
+          color: var(--text-muted);
+        }
       `}</style>
 
       <ConfirmDialog />
 
       <div className="mb-6">
-        <h1 className="font-display font-semibold text-2xl text-[#14261d] mb-1">
+        <h1
+          className="font-display mb-1 text-2xl font-semibold"
+          style={{ color: "var(--text-heading)" }}
+        >
           Animal Types
         </h1>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[#66716a]">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
           Species/type classifications used across your animal records.
         </p>
         {canManage && (
@@ -188,17 +244,26 @@ function AnimalTypesTab() {
             label="Add Animal Type"
             icon={<Plus size={16} className="mr-1.5" />}
             onClick={openCreate}
-            className="!bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !text-sm !font-semibold !px-4 !py-2"
+            className="!rounded-lg !px-4 !py-2 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
           />
         )}
       </div>
 
       <div className="relative mb-4 max-w-xs">
+        {/* <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2"
+          style={{ color: "var(--text-muted)" }}
+        /> */}
         <InputText
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder="Search by name or code…"
-          className="field-input w-full rounded-lg pl-9 pr-3 py-2.5 text-sm"
+          className="field-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm"
         />
       </div>
 
@@ -212,25 +277,41 @@ function AnimalTypesTab() {
         globalFilterFields={["name", "code"]}
         emptyMessage="No animal types yet."
       >
-        {/* <Column field="code" header="Code" sortable style={{ width: "25%" }} /> */}
-        <Column field="name" header="Name" sortable style={{ width: "35%" }}/>
+        <Column field="name" header="Name" sortable style={{ width: "35%" }} />
         <Column
           field="is_active"
           header="Status"
           style={{ width: "25%" }}
           body={(row) => (
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+              style={
                 row.is_active
-                  ? "bg-[#1f3d2e]/10 text-[#1f3d2e]"
-                  : "bg-[#66716a]/10 text-[#66716a]"
-              }`}
+                  ? {
+                      backgroundColor:
+                        "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color: "var(--primary)",
+                    }
+                  : {
+                      backgroundColor:
+                        "color-mix(in srgb, var(--text-muted) 12%, transparent)",
+                      color: "var(--text-muted)",
+                    }
+              }
             >
               {row.is_active ? "Active" : "Inactive"}
             </span>
           )}
         />
-        <Column field="created_at" header="Date" sortable style={{ width: "25%" }} body={(rowData) => rowData.created_at ? rowData.created_at.split('T')[0] : ''}/>
+        <Column
+          field="created_at"
+          header="Date"
+          sortable
+          style={{ width: "25%" }}
+          body={(rowData) =>
+            rowData.created_at ? rowData.created_at.split("T")[0] : ""
+          }
+        />
         {canManage && (
           <Column
             header="Actions"
@@ -239,13 +320,27 @@ function AnimalTypesTab() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => openEdit(row)}
-                  className="p-1.5 text-[#66716a] hover:text-[#1f3d2e] transition-colors"
+                  className="p-1.5 transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--primary)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--text-muted)")
+                  }
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => confirmDelete(row)}
-                  className="p-1.5 text-[#66716a] hover:text-[#b3452d] transition-colors"
+                  className="p-1.5 transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--danger)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--text-muted)")
+                  }
                 >
                   <Trash2 size={16} />
                 </button>
@@ -260,45 +355,59 @@ function AnimalTypesTab() {
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         style={{ width: "28rem" }}
+        className="animal-types-dialog"
       >
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col gap-4 pt-2"
         >
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+            <label
+              className="text-[0.8rem] font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               Code
             </label>
             <InputText
               placeholder="e.g. GOAT"
               {...register("code")}
-              className={`field-input w-full rounded-lg px-3 py-2.5 text-sm ${errors.code ? "field-invalid" : ""}`}
+              className={`field-input w-full rounded-lg px-3 py-2.5 text-sm ${
+                errors.code ? "field-invalid" : ""
+              }`}
             />
             {errors.code && (
-              <small className="text-[#b3452d] text-xs">
+              <small className="text-xs" style={{ color: "var(--danger)" }}>
                 {errors.code.message}
               </small>
             )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+            <label
+              className="text-[0.8rem] font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               Name
             </label>
             <InputText
               placeholder="e.g. Goat"
               {...register("name")}
-              className={`field-input w-full rounded-lg px-3 py-2.5 text-sm ${errors.name ? "field-invalid" : ""}`}
+              className={`field-input w-full rounded-lg px-3 py-2.5 text-sm ${
+                errors.name ? "field-invalid" : ""
+              }`}
             />
             {errors.name && (
-              <small className="text-[#b3452d] text-xs">
+              <small className="text-xs" style={{ color: "var(--danger)" }}>
                 {errors.name.message}
               </small>
             )}
           </div>
 
           <div className="flex items-center justify-between">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+            <label
+              className="text-[0.8rem] font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               Active
             </label>
             <InputSwitch
@@ -311,7 +420,11 @@ function AnimalTypesTab() {
             type="submit"
             label={saving ? "Saving…" : "Save"}
             loading={saving}
-            className="!mt-2 !w-full !justify-center !bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !py-2.5 !font-semibold !text-sm"
+            className="!mt-2 !w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
           />
         </form>
       </Dialog>

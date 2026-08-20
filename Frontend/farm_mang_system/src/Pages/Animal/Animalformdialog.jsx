@@ -70,9 +70,13 @@ function AnimalFormDialog({
         animal_type_id: editingAnimal.animal_type_id,
         breed_id: editingAnimal.breed_id,
         gender_id: editingAnimal.gender_id,
-        birth_date: editingAnimal.birth_date ? new Date(editingAnimal.birth_date) : null,
+        birth_date: editingAnimal.birth_date
+          ? new Date(editingAnimal.birth_date)
+          : null,
         acquisition_type: editingAnimal.acquisition_type,
-        acquired_on: editingAnimal.acquired_on ? new Date(editingAnimal.acquired_on) : null,
+        acquired_on: editingAnimal.acquired_on
+          ? new Date(editingAnimal.acquired_on)
+          : null,
         mother_id: editingAnimal.mother_id,
         father_id: editingAnimal.father_id,
         notes: editingAnimal.notes || "",
@@ -82,11 +86,6 @@ function AnimalFormDialog({
     }
   }, [visible, editingAnimal, reset]);
 
-  // FIX: when switching to PURCHASED, the Mother/Father dropdowns disappear
-  // from view but react-hook-form still holds their old values — which then
-  // silently fails yup validation (the error has nowhere to render, since
-  // the fields showing it are hidden). Clearing them here keeps form state
-  // in sync with what's actually visible.
   useEffect(() => {
     if (watchedAcquisition === "PURCHASED") {
       setValue("mother_id", null);
@@ -105,11 +104,17 @@ function AnimalFormDialog({
       .filter((a) => a.id !== editingId)
       .filter((a) => {
         const genderName = a.gender?.name;
-        const recognized = isFemaleGender(genderName) || isMaleGender(genderName);
+        const recognized =
+          isFemaleGender(genderName) || isMaleGender(genderName);
         if (!recognized) return true;
-        return target === "mother" ? isFemaleGender(genderName) : isMaleGender(genderName);
+        return target === "mother"
+          ? isFemaleGender(genderName)
+          : isMaleGender(genderName);
       })
-      .map((a) => ({ label: `${a.tag_number}${a.name ? ` — ${a.name}` : ""}`, value: a.id }));
+      .map((a) => ({
+        label: `${a.tag_number}${a.name ? ` — ${a.name}` : ""}`,
+        value: a.id,
+      }));
 
   const onSubmit = (data) => {
     const payload = {
@@ -122,35 +127,118 @@ function AnimalFormDialog({
     onSubmitForm(payload, editingId);
   };
 
+  const labelStyle = {
+    color: "var(--text)",
+  };
+
+  const errorStyle = {
+    color: "var(--danger)",
+  };
+
   return (
     <Dialog
       header={editingId ? "Edit Animal" : "Add Animal"}
       visible={visible}
       onHide={onHide}
       style={{ width: "36rem" }}
+      className="animal-form-dialog"
     >
       <style>{`
-        .field-input, .field-input.p-inputtextarea { background: #fdfcf9; border: 1px solid #e6e2d6; }
-        .field-input:focus { outline: none; border-color: #3c6650 !important; box-shadow: 0 0 0 3px rgba(60,102,80,0.14) !important; }
-        .field-invalid { border-color: #b3452d !important; }
-        .dropdown-field.p-dropdown, .p-calendar .p-inputtext { background: #fdfcf9; border: 1px solid #e6e2d6; border-radius: 0.5rem; }
-        .dropdown-field.p-dropdown.p-focus, .p-calendar.p-inputwrapper-focus .p-inputtext { border-color: #3c6650 !important; box-shadow: 0 0 0 3px rgba(60,102,80,0.14) !important; }
-        .dropdown-field .p-dropdown-label { padding: 0.625rem 0.75rem; font-size: 0.875rem; color: #1b241d; }
+        .animal-form-dialog .p-dialog-header {
+          background: var(--bg-card);
+          color: var(--text-heading);
+          border-bottom: 1px solid var(--border);
+        }
+        .animal-form-dialog .p-dialog-content {
+          background: var(--bg-card);
+          color: var(--text);
+        }
+        .animal-form-dialog .p-dialog-header-icon {
+          color: var(--text-muted);
+        }
+        .animal-form-dialog .field-input,
+        .animal-form-dialog .field-input.p-inputtextarea {
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
+          color: var(--text);
+        }
+        .animal-form-dialog .field-input::placeholder {
+          color: var(--text-muted);
+        }
+        .animal-form-dialog .field-input:focus {
+          outline: none;
+          border-color: var(--primary-hover) !important;
+          box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
+        }
+        html.dark .animal-form-dialog .field-input:focus {
+          box-shadow: 0 0 0 3px rgba(74, 124, 98, 0.25) !important;
+        }
+        .animal-form-dialog .field-invalid {
+          border-color: var(--danger) !important;
+        }
+        .animal-form-dialog .dropdown-field.p-dropdown,
+        .animal-form-dialog .p-calendar .p-inputtext {
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          color: var(--text);
+        }
+        .animal-form-dialog .dropdown-field.p-dropdown.p-focus,
+        .animal-form-dialog .p-calendar.p-inputwrapper-focus .p-inputtext {
+          border-color: var(--primary-hover) !important;
+          box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
+        }
+        .animal-form-dialog .dropdown-field .p-dropdown-label {
+          padding: 0.625rem 0.75rem;
+          font-size: 0.875rem;
+          color: var(--text);
+        }
+        .animal-form-dialog .p-dropdown-panel {
+          background: var(--bg-card);
+          border-color: var(--border);
+          color: var(--text);
+        }
+        .animal-form-dialog .p-dropdown-item {
+          color: var(--text);
+        }
+        .animal-form-dialog .p-dropdown-item:hover,
+        .animal-form-dialog .p-dropdown-item.p-highlight {
+          background: var(--bg-muted);
+          color: var(--text);
+        }
+        .animal-form-dialog .p-datepicker {
+          background: var(--bg-card);
+          border-color: var(--border);
+          color: var(--text);
+        }
       `}</style>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 pt-2">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex flex-col gap-4 pt-2"
+      >
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Tag Number</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Tag Number
+            </label>
             <InputText
               placeholder="e.g. G-0142"
               {...register("tag_number")}
-              className={`field-input w-full rounded-lg px-3 py-2.5 text-sm ${errors.tag_number ? "field-invalid" : ""}`}
+              className={`field-input w-full rounded-lg px-3 py-2.5 text-sm ${
+                errors.tag_number ? "field-invalid" : ""
+              }`}
             />
-            {errors.tag_number && <small className="text-[#b3452d] text-xs">{errors.tag_number.message}</small>}
+            {errors.tag_number && (
+              <small className="text-xs" style={errorStyle}>
+                {errors.tag_number.message}
+              </small>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Name (optional)</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Name (optional)
+            </label>
             <InputText
               placeholder="e.g. Bella"
               {...register("name")}
@@ -161,7 +249,9 @@ function AnimalFormDialog({
 
         <div className="grid grid-cols-3 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Animal Type</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Animal Type
+            </label>
             <Controller
               name="animal_type_id"
               control={control}
@@ -171,15 +261,23 @@ function AnimalFormDialog({
                   onChange={(e) => field.onChange(e.value)}
                   options={typeOptions}
                   placeholder="Select"
-                  className={`dropdown-field w-full ${errors.animal_type_id ? "field-invalid" : ""}`}
+                  className={`dropdown-field w-full ${
+                    errors.animal_type_id ? "field-invalid" : ""
+                  }`}
                 />
               )}
             />
-            {errors.animal_type_id && <small className="text-[#b3452d] text-xs">{errors.animal_type_id.message}</small>}
+            {errors.animal_type_id && (
+              <small className="text-xs" style={errorStyle}>
+                {errors.animal_type_id.message}
+              </small>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Breed</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Breed
+            </label>
             <Controller
               name="breed_id"
               control={control}
@@ -190,15 +288,23 @@ function AnimalFormDialog({
                   options={breedOptions}
                   placeholder={watchedTypeId ? "Select" : "Pick type first"}
                   disabled={!watchedTypeId}
-                  className={`dropdown-field w-full ${errors.breed_id ? "field-invalid" : ""}`}
+                  className={`dropdown-field w-full ${
+                    errors.breed_id ? "field-invalid" : ""
+                  }`}
                 />
               )}
             />
-            {errors.breed_id && <small className="text-[#b3452d] text-xs">{errors.breed_id.message}</small>}
+            {errors.breed_id && (
+              <small className="text-xs" style={errorStyle}>
+                {errors.breed_id.message}
+              </small>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Gender</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Gender
+            </label>
             <Controller
               name="gender_id"
               control={control}
@@ -208,17 +314,25 @@ function AnimalFormDialog({
                   onChange={(e) => field.onChange(e.value)}
                   options={genderOptions}
                   placeholder="Select"
-                  className={`dropdown-field w-full ${errors.gender_id ? "field-invalid" : ""}`}
+                  className={`dropdown-field w-full ${
+                    errors.gender_id ? "field-invalid" : ""
+                  }`}
                 />
               )}
             />
-            {errors.gender_id && <small className="text-[#b3452d] text-xs">{errors.gender_id.message}</small>}
+            {errors.gender_id && (
+              <small className="text-xs" style={errorStyle}>
+                {errors.gender_id.message}
+              </small>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Birth Date (optional)</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Birth Date (optional)
+            </label>
             <Controller
               name="birth_date"
               control={control}
@@ -233,11 +347,17 @@ function AnimalFormDialog({
                 />
               )}
             />
-            {errors.birth_date && <small className="text-[#b3452d] text-xs">{errors.birth_date.message}</small>}
+            {errors.birth_date && (
+              <small className="text-xs" style={errorStyle}>
+                {errors.birth_date.message}
+              </small>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Acquisition Type</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Acquisition Type
+            </label>
             <Controller
               name="acquisition_type"
               control={control}
@@ -246,17 +366,25 @@ function AnimalFormDialog({
                   value={field.value}
                   onChange={(e) => field.onChange(e.value)}
                   options={ACQUISITION_OPTIONS}
-                  className={`dropdown-field w-full ${errors.acquisition_type ? "field-invalid" : ""}`}
+                  className={`dropdown-field w-full ${
+                    errors.acquisition_type ? "field-invalid" : ""
+                  }`}
                 />
               )}
             />
-            {errors.acquisition_type && <small className="text-[#b3452d] text-xs">{errors.acquisition_type.message}</small>}
+            {errors.acquisition_type && (
+              <small className="text-xs" style={errorStyle}>
+                {errors.acquisition_type.message}
+              </small>
+            )}
           </div>
         </div>
 
         {watchedAcquisition === "PURCHASED" ? (
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">Acquired On</label>
+            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+              Acquired On
+            </label>
             <Controller
               name="acquired_on"
               control={control}
@@ -275,7 +403,9 @@ function AnimalFormDialog({
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[0.8rem] font-semibold text-[#1b241d]">Mother (optional)</label>
+              <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+                Mother (optional)
+              </label>
               <Controller
                 name="mother_id"
                 control={control}
@@ -293,7 +423,9 @@ function AnimalFormDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[0.8rem] font-semibold text-[#1b241d]">Father (optional)</label>
+              <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+                Father (optional)
+              </label>
               <Controller
                 name="father_id"
                 control={control}
@@ -314,7 +446,9 @@ function AnimalFormDialog({
         )}
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold text-[#1b241d]">Notes (optional)</label>
+          <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+            Notes (optional)
+          </label>
           <InputTextarea
             rows={3}
             {...register("notes")}
@@ -324,9 +458,19 @@ function AnimalFormDialog({
 
         <Button
           type="submit"
-          label={saving ? "Saving…" : editingId ? "Save Changes" : "Register Animal"}
+          label={
+            saving
+              ? "Saving…"
+              : editingId
+              ? "Save Changes"
+              : "Register Animal"
+          }
           loading={saving}
-          className="!mt-2 !w-full !justify-center !bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !py-2.5 !font-semibold !text-sm"
+          className="!mt-2 !w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold !text-white"
+          style={{
+            backgroundColor: "var(--primary)",
+            borderColor: "var(--primary)",
+          }}
         />
       </form>
     </Dialog>

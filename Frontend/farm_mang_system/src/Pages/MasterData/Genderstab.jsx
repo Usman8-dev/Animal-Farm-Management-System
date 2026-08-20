@@ -7,7 +7,7 @@ import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Search } from "lucide-react";
 import api from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
@@ -106,7 +106,7 @@ function GendersTab() {
       message: `Delete "${row.name}"? This can't be undone.`,
       header: "Confirm deletion",
       icon: "pi pi-exclamation-triangle",
-      acceptClassName: "!bg-[#b3452d] !border-[#b3452d]",
+      acceptClassName: "!bg-[var(--danger)] !border-[var(--danger)]",
       accept: async () => {
         try {
           await api.delete(`/animal/api/genders/${row.id}`);
@@ -135,53 +135,169 @@ function GendersTab() {
         * { font-family: 'Inter', sans-serif; }
         .font-display { font-family: 'Fraunces', serif; }
 
-        .p-datatable .p-datatable-thead > tr > th {
-          background: #faf8f2;
-          color: #66716a;
-          font-size: 0.78rem;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-          border-color: #e6e2d6;
-          padding: 0.75rem 1rem;
-        }
-        .p-datatable .p-datatable-tbody > tr > td {
-          border-color: #e6e2d6;
-          padding: 0.75rem 1rem;
-          font-size: 0.88rem;
-          color: #1b241d;
-        }
-        .p-datatable .p-datatable-tbody > tr:hover {
-          background: #faf8f2;
-        }
-        .p-paginator {
-          background: transparent;
-          border: none;
-          padding-top: 1rem;
-        }
-        .field-input {
-          background: #fdfcf9;
-          border: 1px solid #e6e2d6;
-        }
-        .field-input:focus {
-          outline: none;
-          border-color: #3c6650 !important;
-          box-shadow: 0 0 0 3px rgba(60,102,80,0.14) !important;
-        }
-        .field-invalid {
-          border-color: #b3452d !important;
-        }
+       /* Table shell */
+.p-datatable {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.p-datatable .p-datatable-wrapper {
+  background: var(--bg-card) !important;
+}
+
+/* Header */
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--bg-muted) !important;
+  color: var(--text-muted) !important;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-color: var(--border) !important;
+  padding: 0.75rem 1rem;
+}
+
+/* Body cells */
+.p-datatable .p-datatable-tbody > tr {
+  background: var(--bg-card) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  color: var(--text) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover > td {
+  background: var(--bg-muted) !important;
+}
+
+/* Empty message row */
+.p-datatable .p-datatable-tbody > tr.p-datatable-emptymessage > td {
+  background: var(--bg-card) !important;
+  color: var(--text-muted) !important;
+}
+
+/* Paginator */
+.p-paginator {
+  background: transparent !important;
+  border: none !important;
+  padding-top: 1rem;
+  color: var(--text-muted) !important;
+}
+
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-last,
+.p-paginator .p-dropdown,
+.p-paginator .p-dropdown-label {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.p-paginator .p-highlight {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+/* Search input */
+.field-input {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+.field-input::placeholder {
+  color: var(--text-muted) !important;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
+}
+.genders-dialog.p-dialog {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+
+.genders-dialog .p-dialog-header {
+  background: var(--bg-card) !important;
+  color: var(--text-heading) !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+.genders-dialog .p-dialog-header .p-dialog-title {
+  color: var(--text-heading) !important;
+  font-weight: 600;
+}
+
+.genders-dialog .p-dialog-header-icons .p-dialog-header-icon {
+  color: var(--text-muted) !important;
+}
+
+.genders-dialog .p-dialog-header-icons .p-dialog-header-icon:hover {
+  background: var(--bg-muted) !important;
+  color: var(--text) !important;
+}
+
+.genders-dialog .p-dialog-content {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+  padding: 0 1.5rem 1.5rem !important;
+}
+
+.genders-dialog .p-dialog-footer {
+  background: var(--bg-card) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+/* Inputs inside dialog */
+.genders-dialog .field-input {
+  background: var(--bg-muted) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+
+.genders-dialog .field-input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.genders-dialog .field-input:focus {
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 0 0 3px rgba(60, 102, 80, 0.14) !important;
+}
+
+.genders-dialog .field-invalid {
+  border-color: var(--danger) !important;
+}
+
+/* Mask / overlay behind dialog */
+.p-dialog-mask {
+  background-color: rgba(0, 0, 0, 0.55) !important;
+}
       `}</style>
 
       <ConfirmDialog />
 
       <div className="mb-6">
-        <h1 className="font-display font-semibold text-2xl text-[#14261d] mb-1">
+        <h1
+          className="font-display mb-1 text-2xl font-semibold"
+          style={{ color: "var(--text-heading)" }}
+        >
           Genders
         </h1>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[#66716a]">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
           Gender options used when registering animals.
         </p>
         {canManage && (
@@ -189,18 +305,26 @@ function GendersTab() {
             label="Add Gender"
             icon={<Plus size={16} className="mr-1.5" />}
             onClick={openCreate}
-            className="!bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !text-sm !font-semibold !px-4 !py-2"
+            className="!rounded-lg !px-4 !py-2 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
           />
         )}
       </div>
 
-      {/* Search filter */}
       <div className="relative mb-4 max-w-xs">
+        {/* <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2"
+          style={{ color: "var(--text-muted)" }}
+        /> */}
         <InputText
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder="Search by name or code…"
-          className="field-input w-full rounded-lg pl-9 pr-3 py-2.5 text-sm"
+          className="field-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm"
         />
       </div>
 
@@ -215,19 +339,16 @@ function GendersTab() {
         emptyMessage="No genders yet."
         tableStyle={{ tableLayout: "fixed" }}
       >
-        {/* <Column
-          field="code"
-          header="Code"
-          sortable
-          style={{ width: "25%" }}
-        /> */}
+        <Column field="name" header="Name" sortable style={{ width: "35%" }} />
         <Column
-          field="name"
-          header="Name"
+          field="created_at"
+          header="Date"
           sortable
           style={{ width: "35%" }}
+          body={(rowData) =>
+            rowData.created_at ? rowData.created_at.split("T")[0] : ""
+          }
         />
-        <Column field="created_at" header="Date" sortable style={{ width: "35%" }} body={(rowData) => rowData.created_at ? rowData.created_at.split('T')[0] : ''}/>
         {canManage && (
           <Column
             header="Actions"
@@ -236,13 +357,27 @@ function GendersTab() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => openEdit(row)}
-                  className="p-1.5 text-[#66716a] hover:text-[#1f3d2e] transition-colors"
+                  className="p-1.5 transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--primary)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--text-muted)")
+                  }
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => confirmDelete(row)}
-                  className="p-1.5 text-[#66716a] hover:text-[#b3452d] transition-colors"
+                  className="p-1.5 transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "var(--danger)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "var(--text-muted)")
+                  }
                 >
                   <Trash2 size={16} />
                 </button>
@@ -257,13 +392,17 @@ function GendersTab() {
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         style={{ width: "24rem" }}
+        className="genders-dialog"
       >
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col gap-4 pt-2"
         >
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+            <label
+              className="text-[0.8rem] font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               Code
             </label>
             <InputText
@@ -274,14 +413,17 @@ function GendersTab() {
               }`}
             />
             {errors.code && (
-              <small className="text-[#b3452d] text-xs">
+              <small className="text-xs" style={{ color: "var(--danger)" }}>
                 {errors.code.message}
               </small>
             )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold text-[#1b241d]">
+            <label
+              className="text-[0.8rem] font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               Name
             </label>
             <InputText
@@ -292,7 +434,7 @@ function GendersTab() {
               }`}
             />
             {errors.name && (
-              <small className="text-[#b3452d] text-xs">
+              <small className="text-xs" style={{ color: "var(--danger)" }}>
                 {errors.name.message}
               </small>
             )}
@@ -302,7 +444,11 @@ function GendersTab() {
             type="submit"
             label={saving ? "Saving…" : "Save"}
             loading={saving}
-            className="!mt-2 !w-full !justify-center !bg-[#1f3d2e] !border-[#1f3d2e] hover:!bg-[#3c6650] !rounded-lg !py-2.5 !font-semibold !text-sm"
+            className="!mt-2 !w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
           />
         </form>
       </Dialog>
