@@ -12,6 +12,7 @@ import {
   X as XIcon,
   PawPrint,
   Upload,
+  GitBranch,
 } from "lucide-react";
 import api, { API_BASE_URL } from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
@@ -285,24 +286,32 @@ const primaryImage =
           </div>
         </div>
 
-        {canManage && (
-          <div className="flex items-center gap-2">
-            <Button
-              label="Edit"
-              icon={<Pencil size={15} className="mr-1.5" />}
-              onClick={() => setDialogOpen(true)}
-              className="!bg-white !border-[#e6e2d6] !text-[#1b241d] hover:!bg-[#faf8f2] !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
-            />
-            {canDelete && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            label="Family Tree"
+            icon={<GitBranch size={15} className="mr-1.5" />}
+            onClick={() => navigate(`/animals/${id}/family-tree`)}
+            className="!bg-[#1f3d2e] !border-[#1f3d2e] !text-white hover:!bg-[#3c6650] !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
+          />
+          {canManage && (
+            <>
               <Button
-                label="Delete"
-                icon={<Trash2 size={15} className="mr-1.5" />}
-                onClick={handleDeleteAnimal}
-                className="!bg-white !border-[#e6e2d6] !text-[#b3452d] hover:!bg-[#b3452d]/5 !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
+                label="Edit"
+                icon={<Pencil size={15} className="mr-1.5" />}
+                onClick={() => setDialogOpen(true)}
+                className="!bg-white !border-[#e6e2d6] !text-[#1b241d] hover:!bg-[#faf8f2] !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
               />
-            )}
-          </div>
-        )}
+              {canDelete && (
+                <Button
+                  label="Delete"
+                  icon={<Trash2 size={15} className="mr-1.5" />}
+                  onClick={handleDeleteAnimal}
+                  className="!bg-white !border-[#e6e2d6] !text-[#b3452d] hover:!bg-[#b3452d]/5 !rounded-lg !text-sm !font-semibold !px-3.5 !py-2"
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -494,8 +503,13 @@ const primaryImage =
         saving={saving}
         onSubmitForm={handleSubmitForm}
       />
+    
     </div>
+
+    
   );
+  
 }
+
 
 export default AnimalDetail;

@@ -53,6 +53,7 @@ import BreedsTab from "./Pages/MasterData/Breedstab";
 import GendersTab from "./Pages/MasterData/GendersTab";
 import AnimalsList from "./Pages/Animal/Animalslist";
 import AnimalDetail from "./Pages/Animal/Animaldetail";
+import FamilyTreePage from "./Pages/Animal/FamilyTreePage";
 function App() {
   return (
     <div>
@@ -79,6 +80,7 @@ function App() {
                     <Route path="/master-data/genders" element={<GendersTab />} />
                     <Route path="/animals" element={<AnimalsList/>} />
                     <Route path="/animals/:id" element={<AnimalDetail />} />
+                    <Route path="/animals/:id/family-tree" element={<FamilyTreePage />} />
 
               </Route>
             </Routes>

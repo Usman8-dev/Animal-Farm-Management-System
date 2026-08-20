@@ -464,6 +464,114 @@ const DeleteAnimalImage = async (req, res) => {
   }
 };
 
+const GetAnimalFamilyTree = async (req, res) => {
+  try {
+    const farmId = req.user.farmId;
+    const animalId = Number(req.params.id);
+
+    const animalSelect = {
+      id: true,
+      tag_number: true,
+      name: true,
+      birth_date: true,
+      mother_id: true,
+      father_id: true,
+      gender: { select: { id: true, name: true } },
+      animalType: { select: { id: true, name: true } },
+      breed: { select: { id: true, name: true } },
+      images: {
+        where: { deleted_at: null, is_primary: true },
+        select: { id: true, url: true },
+        take: 1,
+      },
+    };
+
+    // 1. Main animal
+    const animal = await prisma.animal.findFirst({
+      where: { id: animalId, farm_id: farmId, deleted_at: null },
+      select: animalSelect,
+    });
+
+    if (!animal) {
+      return res.status(404).json({ success: false, message: 'Animal not found' });
+    }
+
+    // Helper: load one relative by id
+    const loadAnimal = async (id) => {
+      if (!id) return null;
+      return prisma.animal.findFirst({
+        where: { id, farm_id: farmId, deleted_at: null },
+        select: animalSelect,
+      });
+    };
+
+    // 2. Parents
+    const [mother, father] = await Promise.all([
+      loadAnimal(animal.mother_id),
+      loadAnimal(animal.father_id),
+    ]);
+
+    // 3. Grandparents (from parents' mother_id / father_id)
+    const [
+      maternalGrandmother,
+      maternalGrandfather,
+      paternalGrandmother,
+      paternalGrandfather,
+    ] = await Promise.all([
+      loadAnimal(mother?.mother_id),
+      loadAnimal(mother?.father_id),
+      loadAnimal(father?.mother_id),
+      loadAnimal(father?.father_id),
+    ]);
+
+    // 4. Descendants — recursively load children, grandchildren,
+    // great-grandchildren, etc. so the tree is fully continuous.
+    const loadDescendants = async (id, depth = 0, path = new Set()) => {
+      // Safety: cap depth and stop if the same animal appears again in a
+      // path (guards against accidental cycles in the data).
+      if (depth >= 10 || path.has(id)) return [];
+
+      const nextPath = new Set(path).add(id);
+
+      const direct = await prisma.animal.findMany({
+        where: {
+          farm_id: farmId,
+          deleted_at: null,
+          OR: [{ mother_id: id }, { father_id: id }],
+        },
+        select: animalSelect,
+        orderBy: { birth_date: 'asc' },
+      });
+
+      return Promise.all(
+        direct.map(async (child) => ({
+          ...child,
+          children: await loadDescendants(child.id, depth + 1, nextPath),
+        }))
+      );
+    };
+
+    const children = await loadDescendants(animalId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        animal,
+        mother,
+        father,
+        maternalGrandmother,
+        maternalGrandfather,
+        paternalGrandmother,
+        paternalGrandfather,
+        children,
+      },
+    });
+  } catch (err) {
+    console.error('GetAnimalFamilyTree error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 export {
   ListAnimals,
   GetAnimal,
@@ -474,4 +582,5 @@ export {
   AddAnimalImage,
   SetPrimaryImage,
   DeleteAnimalImage,
+  GetAnimalFamilyTree
 };

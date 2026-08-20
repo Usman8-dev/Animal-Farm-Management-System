@@ -42,6 +42,7 @@ import {
   AddAnimalImage,
   SetPrimaryImage,
   DeleteAnimalImage,
+  GetAnimalFamilyTree,
 } from '../Controller/AnimalController.js';
 
 const router = Router();
@@ -91,9 +92,9 @@ router.get('/animals/:id/offspring', AnimalIdParamValidator, validate, GetOffspr
 
 router.post('/animals/:id/images', authorizeRoles('owner', 'manager', 'worker'), uploadImage.single('image'), AnimalIdParamValidator, AnimalImageValidator, validate, AddAnimalImage
 );
-
 router.put('/animals/:id/images/:imageId/primary', authorizeRoles('owner', 'manager', 'worker'), SetPrimaryImage);
-
 router.delete('/animals/:id/images/:imageId', authorizeRoles('owner', 'manager', 'worker'), DeleteAnimalImage);
+
+router.get('/animals/:id/family-tree', authorizeRoles('owner', 'manager', 'worker'), GetAnimalFamilyTree);
 
 export default router;
