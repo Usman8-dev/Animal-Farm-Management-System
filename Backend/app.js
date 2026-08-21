@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Routers 
 import userRouter from './Routers/userRouter.js';
 import animalRoutes from './Routers/Animalroutes.js'
+import teamRouter from './Routers/teamRouter.js';
 
 
 // ─── Security & Parsing Middleware ───────────────────────────────
@@ -41,6 +42,7 @@ app.use(cors({
 
 app.use('/user', userRouter);
 app.use('/animal/api', animalRoutes);
+app.use('/team/api', teamRouter)
 
 // ─── 404 Handler ───────────────────────────────────────────────────
 app.use((req, res) => {

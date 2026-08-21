@@ -3,7 +3,6 @@ import { IsLoginUser } from '../Middlewares/IsLoginUser.js';
 import { authorizeRoles } from '../Middlewares/Authorizeroles.js'; // see note at bottom
 import { validate } from '../Middlewares/validate.js';
 import { uploadImage } from '../Middlewares/upload.js';
-
 import {
   AnimalTypeValidator,
   BreedValidator,
