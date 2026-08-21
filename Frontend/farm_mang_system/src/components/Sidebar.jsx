@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -13,23 +13,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const NAV_ITEMS = [
-  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, roles: ["owner", "manager", "worker"] },
-  { label: "Animals", to: "/animals", icon: PawPrint, roles: ["owner", "manager", "worker"] },
-  {
-    label: "Master Data",
-    icon: Database,
-    roles: ["owner", "manager"],
-    children: [
-      { label: "Animal Types", to: "/master-data/animal-types" },
-      { label: "Breeds", to: "/master-data/breeds" },
-      { label: "Genders", to: "/master-data/genders" },
-    ],
-  },
-  { label: "Team", to: "/team", icon: Users, roles: ["owner", "manager"] },
-  { label: "Farm Settings", to: "/farm-settings", icon: Settings, roles: ["owner"] },
-];
-
 function Sidebar({ mobileOpen, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -38,12 +21,63 @@ function Sidebar({ mobileOpen, onClose }) {
   const isMasterDataRoute = location.pathname.startsWith("/master-data");
   const [expanded, setExpanded] = useState(isMasterDataRoute);
 
-  const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(user?.role));
+  // Owner → full dashboard | Manager/Worker → staff workspace
+  const dashboardPath =
+    user?.role === "owner" ? "/dashboard" : "/staffdashboard";
+
+  const NAV_ITEMS = useMemo(
+    () => [
+      {
+        label: "Dashboard",
+        to: dashboardPath,
+        icon: LayoutDashboard,
+        roles: ["owner", "manager", "worker"],
+      },
+      {
+        label: "Animals",
+        to: "/animals",
+        icon: PawPrint,
+        roles: ["owner", "manager", "worker"],
+      },
+      {
+        label: "Master Data",
+        icon: Database,
+        roles: ["owner", "manager"], // write UI; adjust if workers may only view
+        children: [
+          { label: "Animal Types", to: "/master-data/animal-types" },
+          { label: "Breeds", to: "/master-data/breeds" },
+          { label: "Genders", to: "/master-data/genders" },
+        ],
+      },
+      {
+        label: "Team",
+        to: "/team",
+        icon: Users,
+        roles: ["owner", "manager"],
+      },
+      {
+        label: "Farm Settings",
+        to: "/farm-settings",
+        icon: Settings,
+        roles: ["owner"],
+      },
+    ],
+    [dashboardPath]
+  );
+
+  const visibleItems = NAV_ITEMS.filter((item) =>
+    item.roles.includes(user?.role)
+  );
 
   const handleLogout = async () => {
     await logout();
     navigate("/");
   };
+
+  // Active state: both dashboards highlight "Dashboard"
+  const isDashboardActive =
+    location.pathname === "/dashboard" ||
+    location.pathname === "/staffdashboard";
 
   const content = (
     <div className="flex h-full flex-col bg-[#14261D]">
@@ -52,18 +86,16 @@ function Sidebar({ mobileOpen, onClose }) {
         .font-display { font-family: 'Fraunces', serif; }
       `}</style>
 
-      {/* Brand */}
       <div className="flex items-center justify-between px-5 py-5">
-        <div className="flex items-center gap-2 font-display font-semibold text-[1.05rem] text-[#e3c55c]">
+        <div className="flex items-center gap-2 font-display text-[1.05rem] font-semibold text-[#e3c55c]">
           <Sprout size={20} strokeWidth={2.2} />
           <span>Herdwell</span>
         </div>
-        <button onClick={onClose} className="md:hidden text-[#f4f1e6]/70">
+        <button onClick={onClose} className="text-[#f4f1e6]/70 md:hidden">
           <X size={20} />
         </button>
       </div>
 
-      {/* Nav links */}
       <nav className="flex-1 px-3 py-2">
         <div className="flex flex-col gap-1">
           {visibleItems.map((item) => {
@@ -114,18 +146,24 @@ function Sidebar({ mobileOpen, onClose }) {
               );
             }
 
+            const isDashItem = item.label === "Dashboard";
+
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
                 onClick={onClose}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    isActive
+                className={() => {
+                  const active = isDashItem
+                    ? isDashboardActive
+                    : location.pathname === item.to ||
+                      location.pathname.startsWith(item.to + "/");
+                  return `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    active
                       ? "bg-[#f4f1e6]/10 text-[#e3c55c]"
                       : "text-[#f4f1e6]/70 hover:bg-[#f4f1e6]/5 hover:text-[#f4f1e6]"
-                  }`
-                }
+                  }`;
+                }}
               >
                 <Icon size={17} strokeWidth={2} />
                 {item.label}
@@ -135,11 +173,10 @@ function Sidebar({ mobileOpen, onClose }) {
         </div>
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-4 border-t border-[#f4f1e6]/10">
+      <div className="border-t border-[#f4f1e6]/10 px-3 py-4">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#f4f1e6]/70 hover:bg-[#f4f1e6]/5 hover:text-[#f4f1e6] transition-colors"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#f4f1e6]/70 transition-colors hover:bg-[#f4f1e6]/5 hover:text-[#f4f1e6]"
         >
           <LogOut size={17} strokeWidth={2} />
           Log out
@@ -150,7 +187,7 @@ function Sidebar({ mobileOpen, onClose }) {
 
   return (
     <>
-      <aside className="hidden md:block w-60 shrink-0 h-screen sticky top-0">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 md:block">
         {content}
       </aside>
 

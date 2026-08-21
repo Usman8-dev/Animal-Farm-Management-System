@@ -44,7 +44,7 @@ import { AuthProvider } from "./context/AuthContext";
 import Register from "./Pages/Auth/Register";
 import VerifyEmailNotice from "./Pages/Auth/Verifyemailnotice";
 import Login from "./Pages/Auth/Login";
-import Dashboard from "./Pages/Dashboard";
+import Dashboard from "./Pages/Dashboard/Dashboard";
 import ProtectedRoute from "./components/Protectedroute";
 import Layout from "./components/Layout";
 import VerifyEmail from "./Pages/Auth/Verifyemail";
@@ -56,6 +56,7 @@ import AnimalDetail from "./Pages/Animal/Animaldetail";
 import FamilyTreePage from "./Pages/Animal/FamilyTreePage";
 import { ThemeProvider } from "./context/ThemeContext";
 import TeamList from "./Pages/Team/TeamList";
+import StaffDashboard from "./Pages/Dashboard/StaffDashboard";
 function App() {
   return (
     <div>
@@ -76,7 +77,8 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/staffdashboard" element={<StaffDashboard />} />
 
                     <Route path="/master-data/animal-types" element={<AnimalTypesTab />} />
                     <Route path="/master-data/breeds" element={<BreedsTab />} />

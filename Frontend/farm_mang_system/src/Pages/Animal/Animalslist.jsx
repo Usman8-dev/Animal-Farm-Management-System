@@ -345,7 +345,7 @@ function AnimalsList() {
           )}
         />
         <Column
-          header=""
+          header="Actions"
           style={{ width: "110px" }}
           body={(row) => (
             <div
