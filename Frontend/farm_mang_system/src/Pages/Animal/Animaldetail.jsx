@@ -25,8 +25,8 @@ function AnimalDetail() {
   const showToast = useToast();
   const { user } = useAuth();
   const canManage =
-    user?.role === "owner" || user?.role === "manager" || user?.role === "worker";
-  const canDelete = user?.role === "owner" || user?.role === "manager";
+    user?.role === "owner" || user?.role === "manager";
+  const canDelete = user?.role === "owner";
 
   const [animal, setAnimal] = useState(null);
   const [offspring, setOffspring] = useState([]);

@@ -15,7 +15,9 @@ function AnimalsList() {
   const showToast = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canDelete = user?.role === "owner" || user?.role === "manager";
+   const canManage =
+    user?.role === "owner" || user?.role === "manager";
+  const canDelete = user?.role === "owner";
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -234,24 +236,29 @@ function AnimalsList() {
             All animals registered on your farm.
           </p>
         </div>
-        <Button
-          label="Add Animal"
-          icon={<Plus size={16} className="mr-1.5" />}
-          onClick={openCreate}
-          className="!rounded-lg !px-4 !py-2 !text-sm !font-semibold !text-white"
-          style={{
-            backgroundColor: "var(--primary)",
-            borderColor: "var(--primary)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--primary-hover)";
-            e.currentTarget.style.borderColor = "var(--primary-hover)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--primary)";
-            e.currentTarget.style.borderColor = "var(--primary)";
-          }}
-        />
+
+        {canManage && (
+
+          <Button
+            label="Add Animal"
+            icon={<Plus size={16} className="mr-1.5" />}
+            onClick={openCreate}
+            className="!rounded-lg !px-4 !py-2 !text-sm !font-semibold !text-white"
+            style={{
+              backgroundColor: "var(--primary)",
+              borderColor: "var(--primary)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--primary-hover)";
+              e.currentTarget.style.borderColor = "var(--primary-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--primary)";
+              e.currentTarget.style.borderColor = "var(--primary)";
+            }}
+          />
+        )}
+
       </div>
 
       <div className="relative mb-4 max-w-xs">
@@ -358,6 +365,9 @@ function AnimalsList() {
               >
                 <Eye size={16} />
               </button>
+              
+            {canManage && (
+
               <button
                 onClick={() => openEdit(row)}
                 className="p-1.5 transition-colors"
@@ -371,6 +381,8 @@ function AnimalsList() {
               >
                 <Pencil size={16} />
               </button>
+             )}
+
               {canDelete && (
                 <button
                   onClick={() => confirmDelete(row)}

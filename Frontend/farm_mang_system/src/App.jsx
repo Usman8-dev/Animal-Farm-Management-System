@@ -55,6 +55,7 @@ import AnimalsList from "./Pages/Animal/Animalslist";
 import AnimalDetail from "./Pages/Animal/Animaldetail";
 import FamilyTreePage from "./Pages/Animal/FamilyTreePage";
 import { ThemeProvider } from "./context/ThemeContext";
+import TeamList from "./Pages/Team/TeamList";
 function App() {
   return (
     <div>
@@ -83,6 +84,7 @@ function App() {
                     <Route path="/animals" element={<AnimalsList/>} />
                     <Route path="/animals/:id" element={<AnimalDetail />} />
                     <Route path="/animals/:id/family-tree" element={<FamilyTreePage />} />
+                    <Route path="team" element={<TeamList />} />
 
               </Route>
             </Routes>
