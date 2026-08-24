@@ -246,7 +246,8 @@ model Animal {
 
   images            AnimalImage[]
   statusHistory      StatusHistory[]
-
+  weightHistory   WeightHistory[]
+  valuations      AnimalValuation[]
 
   @@unique([farm_id, tag_number]) // tag numbers are unique per farm, not globally
   @@map("animals")
@@ -327,4 +328,51 @@ model StatusHistory {
   deletedby      Int?
 
   @@map("status_history")
+}
+
+
+// ── Module 3: Weight & Valuation ─────────────────────────────
+
+model WeightHistory {
+  id             Int       @id @default(autoincrement())
+  animal_id      Int
+  animal         Animal    @relation(fields: [animal_id], references: [id])
+
+  weight_kg      Decimal   @db.Decimal(10, 2)
+  effective_from DateTime  @default(now())
+  effective_to   DateTime?
+  source         String?
+  notes          String?
+
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  deleted_at     DateTime?
+  createdby      Int?
+  updatedby      Int?
+  deletedby      Int?
+
+  @@index([animal_id, effective_from])
+  @@map("weight_history")
+}
+
+model AnimalValuation {
+  id             Int       @id @default(autoincrement())
+  animal_id      Int
+  animal         Animal    @relation(fields: [animal_id], references: [id])
+
+  value_amount   Decimal   @db.Decimal(14, 2)
+  basis          String?
+  effective_from DateTime  @default(now())
+  effective_to   DateTime?
+  notes          String?
+
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  deleted_at     DateTime?
+  createdby      Int?
+  updatedby      Int?
+  deletedby      Int?
+
+  @@index([animal_id, effective_from])
+  @@map("animal_valuations")
 }
