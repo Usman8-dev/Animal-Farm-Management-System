@@ -6,15 +6,31 @@ const { AppError, recordStatusChange } = StatusService;
 const RecordStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status_id, effective_from, effective_to, reason } = req.body;
+    const { status_id, effective_from, reason } = req.body;
+
+    if (!status_id) {
+      return res.status(422).json({
+        success: false,
+        message: 'status_id is required',
+      });
+    }
+
+    // Use client date, or now if omitted
+    const fromDate = effective_from ? new Date(effective_from) : new Date();
+
+    if (Number.isNaN(fromDate.getTime())) {
+      return res.status(422).json({
+        success: false,
+        message: 'Invalid effective_from date',
+      });
+    }
 
     const record = await recordStatusChange({
       farmId: req.user.farmId,
       animalId: Number(id),
       statusId: Number(status_id),
-      effectiveFrom: effective_from,
-      effectiveFrom: effective_to,
-      reason,
+      effectiveFrom: fromDate,   // ✅ once, correct value
+      reason: reason || null,
       personId: req.user.id,
     });
 

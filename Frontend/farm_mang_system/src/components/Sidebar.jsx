@@ -47,6 +47,7 @@ function Sidebar({ mobileOpen, onClose }) {
           { label: "Animal Types", to: "/master-data/animal-types" },
           { label: "Breeds", to: "/master-data/breeds" },
           { label: "Genders", to: "/master-data/genders" },
+          { label: "Statuses", to: "/master-data/animal-status" },
         ],
       },
       {

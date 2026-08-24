@@ -57,6 +57,8 @@ import FamilyTreePage from "./Pages/Animal/FamilyTreePage";
 import { ThemeProvider } from "./context/ThemeContext";
 import TeamList from "./Pages/Team/TeamList";
 import StaffDashboard from "./Pages/Dashboard/StaffDashboard";
+import AnimalStatusesTab from "./Pages/Lifecycle/Animalstatusestab";
+import ChangeStatusDialog from "./Pages/Lifecycle/Changestatusdialog";
 function App() {
   return (
     <div>
@@ -87,6 +89,11 @@ function App() {
                     <Route path="/animals/:id" element={<AnimalDetail />} />
                     <Route path="/animals/:id/family-tree" element={<FamilyTreePage />} />
                     <Route path="team" element={<TeamList />} />
+
+                    {/* Module 2  */}
+                    <Route path="/master-data/animal-status" element={<AnimalStatusesTab />} />
+                    {/* <Route path="/animal-status/change-dialog" element={<ChangeStatusDialog />} /> */}
+
 
               </Route>
             </Routes>
