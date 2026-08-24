@@ -92,6 +92,7 @@ model Farms {
   genders     Gender[]
   animalTypes AnimalType[]
   breeds      Breed[]
+  animalStatus      AnimalStatus[]
 
   @@map("farms")
 }
@@ -244,6 +245,8 @@ model Animal {
   deletedby         Int?
 
   images            AnimalImage[]
+  statusHistory      StatusHistory[]
+
 
   @@unique([farm_id, tag_number]) // tag numbers are unique per farm, not globally
   @@map("animals")
@@ -267,4 +270,61 @@ model AnimalImage {
   deletedby  Int?
 
   @@map("animal_images")
+}
+
+
+//----------------------------- Module 2 -------------------------
+
+enum StatusCategory {
+  PRESENCE
+  REPRODUCTIVE
+  HEALTH
+}
+model AnimalStatus {
+  id         Int             @id @default(autoincrement())
+  farm_id    Int
+  farm       Farms           @relation(fields: [farm_id], references: [id])
+
+  code       String          // short label, e.g. "ACTIVE", "SICK" — display only
+  name       String          // e.g. "Active", "Sick"
+  category   StatusCategory  // fixed grouping the backend reasons about
+
+  is_active  Boolean         @default(true)
+
+  created_at DateTime        @default(now())
+  updated_at DateTime        @updatedAt
+  deleted_at DateTime?
+
+  createdby  Int?
+  updatedby  Int?
+  deletedby  Int?
+
+  history    StatusHistory[]
+
+  @@unique([farm_id, code])
+  @@map("animal_statuses")
+}
+
+model StatusHistory {
+  id             Int          @id @default(autoincrement())
+
+  animal_id      Int
+  animal         Animal       @relation(fields: [animal_id], references: [id])
+
+  status_id      Int
+  status         AnimalStatus @relation(fields: [status_id], references: [id])
+
+  effective_from DateTime     @default(now())
+  effective_to   DateTime?    // NULL = this is the animal's current/open status
+  reason         String?
+
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+  deleted_at     DateTime?
+
+  createdby      Int?
+  updatedby      Int?
+  deletedby      Int?
+
+  @@map("status_history")
 }
