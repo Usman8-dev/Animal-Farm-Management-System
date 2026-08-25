@@ -241,6 +241,69 @@ async function growthTrend({ farmId, animalId }) {
   }));
 }
 
+/**
+ * Farm-wide weight & valuation overview. For every animal on the farm it
+ * resolves the latest weight and latest valuation so the dashboard can draw
+ * summary cards and herd-level bar charts without N+1 calls from the client.
+ */
+async function herdOverview({ farmId }) {
+  const animals = await prisma.animal.findMany({
+    where: { farm_id: farmId, deleted_at: null },
+    select: { id: true, tag_number: true, name: true },
+    orderBy: { tag_number: 'asc' },
+  });
+
+  const breakdown = [];
+  let totalValue = 0;
+  let valuedAnimals = 0;
+  let weightedAnimals = 0;
+  let weightSum = 0;
+
+  for (const a of animals) {
+    const [latestWeight, latestValue] = await Promise.all([
+      prisma.weightHistory.findFirst({
+        where: { animal_id: a.id, deleted_at: null },
+        orderBy: { effective_from: 'desc' },
+      }),
+      prisma.animalValuation.findFirst({
+        where: { animal_id: a.id, deleted_at: null },
+        orderBy: { effective_from: 'desc' },
+      }),
+    ]);
+
+    const w = latestWeight ? Number(latestWeight.weight_kg) : null;
+    const v = latestValue ? Number(latestValue.value_amount) : null;
+
+    if (w != null) {
+      weightedAnimals += 1;
+      weightSum += w;
+    }
+    if (v != null) {
+      valuedAnimals += 1;
+      totalValue += v;
+    }
+
+    breakdown.push({
+      animal_id: a.id,
+      tag_number: a.tag_number,
+      name: a.name,
+      latest_weight: w,
+      latest_weight_date: latestWeight ? latestWeight.effective_from : null,
+      latest_value: v,
+      latest_value_date: latestValue ? latestValue.effective_from : null,
+    });
+  }
+
+  return {
+    totalAnimals: animals.length,
+    totalHerdValue: totalValue,
+    valuedAnimals,
+    weightedAnimals,
+    avgLatestWeight: weightedAnimals ? weightSum / weightedAnimals : null,
+    animals: breakdown,
+  };
+}
+
 export const WeightValuationService = {
   AppError,
   addWeight,
@@ -253,4 +316,5 @@ export const WeightValuationService = {
   listValuations,
   totalHerdValue,
   growthTrend,
+  herdOverview,
 };

@@ -13,6 +13,7 @@ import {
   DeleteValuation,
   GetGrowthTrend,
   GetTotalHerdValue,
+  GetHerdOverview,
 } from '../Controller/WeightValuationController.js';
 
 import {
@@ -114,6 +115,11 @@ router.get(
 router.get(
   '/reports/valuation/total-herd-value',
   GetTotalHerdValue
+);
+
+router.get(
+  '/reports/herd-overview',
+  GetHerdOverview
 );
 
 export default router;

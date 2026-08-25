@@ -197,6 +197,18 @@ const GetTotalHerdValue = async (req, res) => {
   }
 };
 
+const GetHerdOverview = async (req, res) => {
+  try {
+    const data = await WeightValuationService.herdOverview({
+      farmId: req.user.farmId,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    console.error('GetHerdOverview error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 export {
   ListWeights,
   AddWeight,
@@ -208,4 +220,5 @@ export {
   DeleteValuation,
   GetGrowthTrend,
   GetTotalHerdValue,
+  GetHerdOverview,
 };

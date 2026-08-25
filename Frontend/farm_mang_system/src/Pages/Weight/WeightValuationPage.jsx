@@ -130,6 +130,49 @@ const formatNumber = (value, digits = 2) => {
   });
 };
 
+// Lightweight dependency-free vertical bar chart (SVG/CSS).
+function BarChart({ data, color, formatter, height = 170 }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <Scale size={22} style={{ color: "var(--text-muted)" }} />
+        <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
+          No records to chart yet.
+        </p>
+      </div>
+    );
+  }
+
+  const max = Math.max(...data.map((d) => d.value), 1);
+
+  return (
+    <div className="flex items-end gap-3 overflow-x-auto pb-1">
+      {data.map((d) => (
+        <div
+          key={d.label}
+          className="flex min-w-[3rem] flex-col items-center justify-end"
+        >
+          <span className="mb-1 whitespace-nowrap text-xs font-semibold" style={{ color: "var(--text)" }}>
+            {formatter ? formatter(d.value) : d.value}
+          </span>
+          <div
+            className="w-8 rounded-t"
+            style={{
+              height: `${Math.max((d.value / max) * height, 4)}px`,
+              backgroundColor: color || "var(--primary)",
+              transition: "height 0.3s ease",
+            }}
+            title={d.label}
+          />
+          <span className="mt-1 truncate text-[0.7rem]" style={{ color: "var(--text-muted)" }}>
+            {d.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function WeightValuationPage() {
   const showToast = useToast();
   const { user } = useAuth();
@@ -155,8 +198,10 @@ function WeightValuationPage() {
   const [savingValuation, setSavingValuation] = useState(false);
   const [valuationFilter, setValuationFilter] = useState("");
 
-  // Reports
+  // Reports / overview
   const [herdValue, setHerdValue] = useState(null);
+  const [overview, setOverview] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
 
   const fetchAnimals = useCallback(async () => {
     try {
@@ -207,12 +252,17 @@ function WeightValuationPage() {
     }
   }, [showToast]);
 
-  const fetchHerdValue = useCallback(async () => {
+  const fetchHerdOverview = useCallback(async () => {
     try {
-      const res = await api.get("/weight/api/reports/valuation/total-herd-value");
-      setHerdValue(res.data.data);
+      setOverviewLoading(true);
+      const res = await api.get("/weight/api/reports/herd-overview");
+      setOverview(res.data.data);
+      // Keep the legacy single-value report in sync as a fallback.
+      setHerdValue({ total: res.data.data?.totalHerdValue ?? 0, count: res.data.data?.valuedAnimals ?? 0 });
     } catch {
-      setHerdValue(null);
+      setOverview(null);
+    } finally {
+      setOverviewLoading(false);
     }
   }, []);
 
@@ -224,8 +274,8 @@ function WeightValuationPage() {
   }, [selectedAnimal, fetchWeights, fetchValuations]);
 
   useEffect(() => {
-    fetchHerdValue();
-  }, [fetchHerdValue]);
+    fetchHerdOverview();
+  }, [fetchHerdOverview]);
 
   const handleAnimalChange = (animal) => {
     setSelectedAnimal(animal);
@@ -314,7 +364,7 @@ function WeightValuationPage() {
       }
       setValuationDialogOpen(false);
       fetchValuations(selectedAnimal.id);
-      fetchHerdValue();
+      fetchHerdOverview();
     } catch (err) {
       showToast({
         severity: "error",
@@ -337,7 +387,7 @@ function WeightValuationPage() {
           await api.delete(`/weight/api/valuations/${row.id}`);
           showToast({ severity: "success", summary: "Deleted", detail: "Valuation removed." });
           fetchValuations(selectedAnimal.id);
-          fetchHerdValue();
+          fetchHerdOverview();
         } catch (err) {
           showToast({
             severity: "error",
@@ -398,6 +448,13 @@ function WeightValuationPage() {
   const latestWeight = weights[0];
   const latestValuation = valuations[0];
 
+  const weightChartData = (overview?.animals || [])
+    .filter((a) => a.latest_weight != null)
+    .map((a) => ({ label: a.tag_number, value: a.latest_weight }));
+  const valuationChartData = (overview?.animals || [])
+    .filter((a) => a.latest_value != null)
+    .map((a) => ({ label: a.tag_number, value: a.latest_value }));
+
   const animalOptionTemplate = (option) =>
     option ? (
       <div className="flex items-center gap-2">
@@ -426,90 +483,141 @@ function WeightValuationPage() {
         </p>
       </div>
 
-      <div className="mb-5 max-w-md">
-        <label className="mb-1.5 block text-[0.8rem] font-semibold" style={{ color: "var(--text)" }}>
-          Animal
-        </label>
-        <Dropdown
-          value={selectedAnimal}
-          onChange={(e) => handleAnimalChange(e.value)}
-          options={animals}
-          optionLabel="tag_number"
-          itemTemplate={animalOptionTemplate}
-          placeholder="Select an animal…"
-          showClear
-          filter
-          filterBy="tag_number,name"
-          filterPlaceholder="Search by tag or name"
-          className="animal-dropdown"
-        />
+      {/* Farm-wide summary cards — always visible */}
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+            Total Herd Value
+          </p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-heading)" }}>
+            {overview ? `Rs. ${formatNumber(overview.totalHerdValue)}` : "—"}
+          </p>
+          <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+            {overview
+              ? `${overview.valuedAnimals} animal${overview.valuedAnimals === 1 ? "" : "s"} valued`
+              : overviewLoading
+              ? "Loading…"
+              : "Sum of latest valuations across the herd"}
+          </p>
+        </div>
+
+        <div
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+            Valued Animals
+          </p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-heading)" }}>
+            {overview ? `${overview.valuedAnimals} / ${overview.totalAnimals}` : "—"}
+          </p>
+          <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+            {overview?.totalAnimals
+              ? `${Math.round((overview.valuedAnimals / overview.totalAnimals) * 100)}% of the herd`
+              : "of the herd have a valuation"}
+          </p>
+        </div>
+
+        <div
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+            Weighted Animals
+          </p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-heading)" }}>
+            {overview ? `${overview.weightedAnimals} / ${overview.totalAnimals}` : "—"}
+          </p>
+          <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+            {overview?.totalAnimals
+              ? `${Math.round((overview.weightedAnimals / overview.totalAnimals) * 100)}% of the herd`
+              : "of the herd have a weight record"}
+          </p>
+        </div>
+
+        <div
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+            Avg Latest Weight
+          </p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-heading)" }}>
+            {overview?.avgLatestWeight != null
+              ? `${formatNumber(overview.avgLatestWeight, 1)} kg`
+              : "—"}
+          </p>
+          <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+            {overview?.weightedAnimals
+              ? `across ${overview.weightedAnimals} weighted animal${overview.weightedAnimals === 1 ? "" : "s"}`
+              : "no weight records yet"}
+          </p>
+        </div>
       </div>
 
-      {selectedAnimal && (
-        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div
-            className="rounded-xl border p-4"
-            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-              Latest Weight
-            </p>
-            <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-heading)" }}>
-              {latestWeight ? `${formatNumber(latestWeight.weight_kg, 1)} kg` : "—"}
-            </p>
-            <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-              {latestWeight ? formatDate(latestWeight.effective_from) : "No weight logged yet"}
-            </p>
-          </div>
-
-          <div
-            className="rounded-xl border p-4"
-            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-              Latest Valuation
-            </p>
-            <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-heading)" }}>
-              {latestValuation ? `Rs. ${formatNumber(latestValuation.value_amount)}` : "—"}
-            </p>
-            <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-              {latestValuation ? formatDate(latestValuation.effective_from) : "No valuation logged yet"}
-            </p>
-          </div>
-
-          <div
-            className="rounded-xl border p-4"
-            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-              Total Herd Value
-            </p>
-            <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-heading)" }}>
-              {herdValue ? `Rs. ${formatNumber(herdValue.total)}` : "—"}
-            </p>
-            <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-              {herdValue?.count != null
-                ? `${herdValue.count} animal${herdValue.count === 1 ? "" : "s"} valued`
-                : "Sum of latest valuations across the herd"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {!selectedAnimal ? (
+      {/* Progress charts — always visible */}
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div
-          className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center"
-          style={{ borderColor: "var(--border)" }}
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
         >
-          <Scale size={36} style={{ color: "var(--text-muted)" }} />
-          <p className="mt-3 text-sm font-medium" style={{ color: "var(--text-heading)" }}>
-            Select an animal to view its records
+          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
+            Latest Weight by Animal (kg)
           </p>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-            Weight history and valuations are stored per animal.
-          </p>
+          <BarChart
+            data={weightChartData}
+            color="var(--primary)"
+            formatter={(v) => `${formatNumber(v, 1)} kg`}
+          />
         </div>
-      ) : (
+
+        <div
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
+            Latest Valuation by Animal (Rs.)
+          </p>
+          <BarChart
+            data={valuationChartData}
+            color="var(--primary-hover)"
+            formatter={(v) => `Rs. ${formatNumber(v, 0)}`}
+          />
+        </div>
+      </div>
+
+      {/* Animal records section */}
+      <div className="mb-5 border-t pt-6">
+        <h2
+          className="font-display mb-1 text-lg font-semibold"
+          style={{ color: "var(--text-heading)" }}
+        >
+          Animal Records
+        </h2>
+        <p className="mb-3 text-sm" style={{ color: "var(--text-muted)" }}>
+          Select an animal to view and manage its weight &amp; valuation history.
+        </p>
+        <div className="max-w-md">
+          <Dropdown
+            value={selectedAnimal}
+            onChange={(e) => handleAnimalChange(e.value)}
+            options={animals}
+            optionLabel="tag_number"
+            itemTemplate={animalOptionTemplate}
+            placeholder="Select an animal…"
+            showClear
+            filter
+            filterBy="tag_number,name"
+            filterPlaceholder="Search by tag or name"
+            className="animal-dropdown"
+          />
+        </div>
+      </div>
+
+      {selectedAnimal ? (
         <TabView className="wv-tabs">
           <TabPanel header="Weights">
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -612,9 +720,9 @@ function WeightValuationPage() {
             >
               <Column
                 field="value_amount"
-                header="Value ($)"
+                header="Value (Rs.)"
                 sortable
-                body={(row) => `$${formatNumber(row.value_amount)}`}
+                body={(row) => `Rs. ${formatNumber(row.value_amount)}`}
               />
               <Column
                 field="effective_from"
@@ -639,7 +747,7 @@ function WeightValuationPage() {
             </DataTable>
           </TabPanel>
         </TabView>
-      )}
+      ) : null}
 
       <LogWeightDialog
         visible={weightDialogOpen}
