@@ -59,6 +59,7 @@ import TeamList from "./Pages/Team/TeamList";
 import StaffDashboard from "./Pages/Dashboard/StaffDashboard";
 import AnimalStatusesTab from "./Pages/Lifecycle/Animalstatusestab";
 import ChangeStatusDialog from "./Pages/Lifecycle/Changestatusdialog";
+import WeightValuationPage from "./Pages/Weight/WeightValuationPage";
 function App() {
   return (
     <div>
@@ -92,9 +93,9 @@ function App() {
 
                     {/* Module 2  */}
                     <Route path="/master-data/animal-status" element={<AnimalStatusesTab />} />
-                    {/* <Route path="/animal-status/change-dialog" element={<ChangeStatusDialog />} /> */}
 
-
+                    {/* Module 3 — Weight & Valuation */}
+                    <Route path="/weight" element={<WeightValuationPage />} />
               </Route>
             </Routes>
           </ToastProvider>

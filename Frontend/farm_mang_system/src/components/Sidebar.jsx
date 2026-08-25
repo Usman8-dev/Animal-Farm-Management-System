@@ -8,6 +8,7 @@ import {
   Users,
   Settings,
   Database,
+  Scale,
   LogOut,
   X,
   ChevronDown,
@@ -37,6 +38,12 @@ function Sidebar({ mobileOpen, onClose }) {
         label: "Animals",
         to: "/animals",
         icon: PawPrint,
+        roles: ["owner", "manager", "worker"],
+      },
+      {
+        label: "Weight & Valuation",
+        to: "/weight",
+        icon: Scale,
         roles: ["owner", "manager", "worker"],
       },
       {
