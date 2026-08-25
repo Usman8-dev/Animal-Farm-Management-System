@@ -6,11 +6,16 @@ import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { TabView, TabPanel } from "primereact/tabview";
-import { Scale, Plus, Pencil, Trash2 } from "lucide-react";
+import { Scale, Plus, Pencil, Trash2, FileDown } from "lucide-react";
 import api from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { LogWeightDialog, LogValuationDialog } from "./WeightValuation";
+import {
+  generateGrowthTrendPdf,
+  generateTotalHerdValuePdf,
+  generateHerdOverviewPdf,
+} from "../../utils/reportPdf";
 
 const pageStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
@@ -203,6 +208,11 @@ function WeightValuationPage() {
   const [overview, setOverview] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
 
+  // PDF generation loading states
+  const [growthPdfLoading, setGrowthPdfLoading] = useState(false);
+  const [herdValuePdfLoading, setHerdValuePdfLoading] = useState(false);
+  const [overviewPdfLoading, setOverviewPdfLoading] = useState(false);
+
   const fetchAnimals = useCallback(async () => {
     try {
       const res = await api.get("/animal/api/animals", { params: { limit: 100 } });
@@ -284,6 +294,74 @@ function WeightValuationPage() {
     if (animal) {
       fetchWeights(animal.id);
       fetchValuations(animal.id);
+    }
+  };
+
+  const toastError = (err, fallback) =>
+    err?.response?.data?.message || fallback;
+
+  const handleGrowthTrendPdf = async () => {
+    if (!selectedAnimal) {
+      showToast({
+        severity: "warn",
+        summary: "Select an animal",
+        detail: "Please select an animal to generate a growth trend report.",
+      });
+      return;
+    }
+    try {
+      setGrowthPdfLoading(true);
+      const res = await api.get("/weight/api/reports/weight/growth-trend", {
+        params: { animal_id: selectedAnimal.id },
+      });
+      generateGrowthTrendPdf({
+        animal: selectedAnimal,
+        rows: res.data.data,
+        generatedBy: user?.name,
+      });
+      showToast({ severity: "success", summary: "PDF ready", detail: "Growth trend PDF downloaded." });
+    } catch (err) {
+      showToast({
+        severity: "error",
+        summary: "PDF failed",
+        detail: toastError(err, "Could not generate the growth trend report."),
+      });
+    } finally {
+      setGrowthPdfLoading(false);
+    }
+  };
+
+  const handleTotalHerdValuePdf = async () => {
+    try {
+      setHerdValuePdfLoading(true);
+      const res = await api.get("/weight/api/reports/valuation/total-herd-value");
+      generateTotalHerdValuePdf({ data: res.data.data, generatedBy: user?.name });
+      showToast({ severity: "success", summary: "PDF ready", detail: "Total herd value PDF downloaded." });
+    } catch (err) {
+      showToast({
+        severity: "error",
+        summary: "PDF failed",
+        detail: toastError(err, "Could not generate the total herd value report."),
+      });
+    } finally {
+      setHerdValuePdfLoading(false);
+    }
+  };
+
+  const handleHerdOverviewPdf = async () => {
+    try {
+      setOverviewPdfLoading(true);
+      const res = await api.get("/weight/api/reports/herd-overview");
+      generateHerdOverviewPdf({ data: res.data.data, generatedBy: user?.name });
+      showToast({ severity: "success", summary: "PDF ready", detail: "Herd overview PDF downloaded." });
+    } catch (err) {
+      showToast({
+        severity: "error",
+        summary: "PDF failed",
+        detail: toastError(err, "Could not generate the herd overview report."),
+      });
+    } finally {
+      setOverviewPdfLoading(false);
     }
   };
 
@@ -588,6 +666,49 @@ function WeightValuationPage() {
           />
         </div>
       </div>
+
+      {/* Reports / PDF downloads */}
+      <div className="mb-6 rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
+        <div className="mb-1 flex items-center gap-2">
+          <FileDown size={18} style={{ color: "var(--primary)" }} />
+          <h2 className="font-display text-lg font-semibold" style={{ color: "var(--text-heading)" }}>
+            Reports
+          </h2>
+        </div>
+        <p className="mb-4 text-sm" style={{ color: "var(--text-muted)" }}>
+          Generate a beautiful PDF for each farm report.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Button
+            label={growthPdfLoading ? "Generating…" : "Growth Trend"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={growthPdfLoading}
+            disabled={!selectedAnimal}
+            onClick={handleGrowthTrendPdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+            tooltip={selectedAnimal ? undefined : "Select an animal first"}
+            tooltipOptions={{ position: "top" }}
+          />
+          <Button
+            label={herdValuePdfLoading ? "Generating…" : "Total Herd Value"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={herdValuePdfLoading}
+            onClick={handleTotalHerdValuePdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+          <Button
+            label={overviewPdfLoading ? "Generating…" : "Herd Overview"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={overviewPdfLoading}
+            onClick={handleHerdOverviewPdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+        </div>
+      </div>
+
 
       {/* Animal records section */}
       <div className="mb-5 border-t pt-6">
