@@ -182,6 +182,8 @@ function WeightValuationPage() {
   const showToast = useToast();
   const { user } = useAuth();
   const canManage = user?.role === "owner" || user?.role === "manager";
+  const canOwner = user?.role === "owner";
+
 
   // Animals
   const [animals, setAnimals] = useState([]);
@@ -563,6 +565,7 @@ function WeightValuationPage() {
 
       {/* Farm-wide summary cards — always visible */}
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {canOwner && (
         <div
           className="rounded-xl border p-4"
           style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
@@ -581,6 +584,7 @@ function WeightValuationPage() {
               : "Sum of latest valuations across the herd"}
           </p>
         </div>
+        )}
 
         <div
           className="rounded-xl border p-4"
@@ -652,6 +656,7 @@ function WeightValuationPage() {
           />
         </div>
 
+        {canOwner && (
         <div
           className="rounded-xl border p-4"
           style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
@@ -665,6 +670,7 @@ function WeightValuationPage() {
             formatter={(v) => `Rs. ${formatNumber(v, 0)}`}
           />
         </div>
+        )}
       </div>
 
       {/* Reports / PDF downloads */}
@@ -690,6 +696,7 @@ function WeightValuationPage() {
             tooltip={selectedAnimal ? undefined : "Select an animal first"}
             tooltipOptions={{ position: "top" }}
           />
+        {canOwner && (
           <Button
             label={herdValuePdfLoading ? "Generating…" : "Total Herd Value"}
             icon={<FileDown size={15} className="mr-1.5" />}
@@ -698,6 +705,8 @@ function WeightValuationPage() {
             className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
             style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
           />
+          )}
+        {canOwner && (
           <Button
             label={overviewPdfLoading ? "Generating…" : "Herd Overview"}
             icon={<FileDown size={15} className="mr-1.5" />}
@@ -706,6 +715,7 @@ function WeightValuationPage() {
             className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
             style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
           />
+        )}
         </div>
       </div>
 
