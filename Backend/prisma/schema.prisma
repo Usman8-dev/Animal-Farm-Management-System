@@ -93,6 +93,7 @@ model Farms {
   animalTypes AnimalType[]
   breeds      Breed[]
   animalStatus      AnimalStatus[]
+  pregnancies Pregnancy[]
 
   @@map("farms")
 }
@@ -249,6 +250,10 @@ model Animal {
   weightHistory   WeightHistory[]
   valuations      AnimalValuation[]
 
+  pregnancyDams   Pregnancy[] @relation("PregnancyDam")
+  pregnancySires  Pregnancy[] @relation("PregnancySire")
+  birthKids       BirthKid[]
+
   @@unique([farm_id, tag_number]) // tag numbers are unique per farm, not globally
   @@map("animals")
 }
@@ -375,4 +380,99 @@ model AnimalValuation {
 
   @@index([animal_id, effective_from])
   @@map("animal_valuations")
+}
+
+// ── Module 4: Breeding & Reproduction Management ──────────────
+
+enum PregnancyOutcome {
+  LIVE_BIRTH
+  STILLBIRTH
+  ABORTED
+  NOT_PREGNANT
+}
+
+model Pregnancy {
+  id                     Int              @id @default(autoincrement())
+
+  // Multi-tenancy: a pregnancy belongs to the farm of its dam
+  farm_id                Int
+  farm                   Farms            @relation(fields: [farm_id], references: [id])
+
+  // The female being bred (dam) — always required
+  dam_id                Int
+  dam                  Animal           @relation("PregnancyDam", fields: [dam_id], references: [id])
+
+  // The male (sire). Either a registered animal (sire_id) or a free-text
+  // reference (sire_ref) for external / AI semen when sire_id is null.
+  sire_id               Int?
+  sire                  Animal?          @relation("PregnancySire", fields: [sire_id], references: [id])
+  sire_ref              String?
+
+  service_date          DateTime         // the mating / service event (conception estimate)
+  expected_delivery_date DateTime        // service_date + Breeds.gestation_days (computed on create)
+
+  is_confirmed          Boolean          @default(false)
+  confirmed_date        DateTime?
+
+  outcome               PregnancyOutcome? // NULL while the pregnancy is still open
+  outcome_date          DateTime?
+
+  notes                 String?
+
+  created_at            DateTime         @default(now())
+  updated_at            DateTime         @updatedAt
+  deleted_at            DateTime?
+  createdby             Int?
+  updatedby             Int?
+  deletedby             Int?
+
+  birth                 Birth?
+
+  @@index([farm_id, expected_delivery_date])
+  @@index([dam_id, service_date])
+  @@map("pregnancies")
+}
+
+model Birth {
+  id            Int       @id @default(autoincrement())
+  pregnancy_id  Int       @unique
+  pregnancy     Pregnancy @relation(fields: [pregnancy_id], references: [id])
+
+  birth_date    DateTime
+  notes         String?
+
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
+  createdby     Int?
+  updatedby     Int?
+  deletedby     Int?
+
+  kids          BirthKid[]
+
+  @@map("births")
+}
+
+model BirthKid {
+  id              Int       @id @default(autoincrement())
+  birth_id        Int
+  birth           Birth     @relation(fields: [birth_id], references: [id])
+
+  // Set when the offspring is auto-registered as a new farm animal.
+  animal_id       Int?      @unique
+  animal          Animal?   @relation(fields: [animal_id], references: [id])
+
+  is_stillborn    Boolean   @default(false)
+  gender          String?   // free text (e.g. "Female") — real type lives on the registered animal
+  birth_weight_kg Decimal?  @db.Decimal(10, 2)
+  notes           String?
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+  createdby       Int?
+  updatedby       Int?
+  deletedby       Int?
+
+  @@map("birth_kids")
 }

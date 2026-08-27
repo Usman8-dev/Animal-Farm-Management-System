@@ -9,6 +9,7 @@ import {
   Settings,
   Database,
   Scale,
+  Dna,
   LogOut,
   X,
   ChevronDown,
@@ -44,6 +45,12 @@ function Sidebar({ mobileOpen, onClose }) {
         label: "Weight & Valuation",
         to: "/weight",
         icon: Scale,
+        roles: ["owner", "manager", "worker"],
+      },
+      {
+        label: "Breeding",
+        to: "/breeding",
+        icon: Dna,
         roles: ["owner", "manager", "worker"],
       },
       {

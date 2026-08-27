@@ -60,6 +60,7 @@ import StaffDashboard from "./Pages/Dashboard/StaffDashboard";
 import AnimalStatusesTab from "./Pages/Lifecycle/Animalstatusestab";
 import ChangeStatusDialog from "./Pages/Lifecycle/Changestatusdialog";
 import WeightValuationPage from "./Pages/Weight/WeightValuationPage";
+import BreedingPage from "./Pages/Breeding/BreedingPage";
 function App() {
   return (
     <div>
@@ -96,6 +97,9 @@ function App() {
 
                     {/* Module 3 — Weight & Valuation */}
                     <Route path="/weight" element={<WeightValuationPage />} />
+
+                    {/* Module 4 — Breeding & Reproduction */}
+                    <Route path="/breeding" element={<BreedingPage />} />
               </Route>
             </Routes>
           </ToastProvider>
