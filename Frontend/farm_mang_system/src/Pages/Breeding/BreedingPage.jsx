@@ -73,10 +73,10 @@ function BreedingPage() {
   const loadReports = useCallback(async () => {
     // Fetch each report independently so one failure never blocks the others.
     const tasks = [
-      { key: "upcoming", url: "/breeding/api/reports/upcoming-deliveries", set: setUpcoming, def: [] },
-      { key: "success", url: "/breeding/api/reports/success-rate", set: setSuccessRate, def: null },
-      { key: "birth", url: "/breeding/api/reports/birth-outcomes", set: setBirthOutcomes, def: null },
-      { key: "maturity", url: "/breeding/api/reports/maturity-alerts", set: setMaturityAlerts, def: [] },
+      { key: "upcoming", url: "/breeding/api/reports/breeding/upcoming-deliveries", set: setUpcoming, def: [] },
+      { key: "success", url: "/breeding/api/reports/breeding/success-rate", set: setSuccessRate, def: null },
+      { key: "birth", url: "/breeding/api/reports/breeding/birth-outcomes", set: setBirthOutcomes, def: null },
+      { key: "maturity", url: "/breeding/api/reports/breeding/maturity-alerts", set: setMaturityAlerts, def: [] },
     ];
 
     await Promise.all(
