@@ -51,7 +51,11 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
   }, [open, reset]);
 
   const sireId = watch("sire_id");
-  const animalOptions = animals.map(animalOption);
+
+  // Dam must be female; sire may be any registered animal except a female.
+  const isFemaleAnimal = (a) => (a.gender?.name || "").toLowerCase().includes("female");
+  const damOptions = animals.filter(isFemaleAnimal).map(animalOption);
+  const sireOptions = animals.filter((a) => !isFemaleAnimal(a)).map(animalOption);
 
   return (
     <Dialog header="Record Service / Mating" visible={open} onHide={onHide} style={{ width: "30rem" }} className="br-dialog">
@@ -71,7 +75,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Dam (female)</label>
           <Controller name="dam_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={animalOptions} optionLabel="tag" optionValue="id" filter placeholder="Select dam" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="tag" optionValue="id" filter placeholder="Select dam" />
           )} />
           {errors.dam_id && <small className="err text-xs">{errors.dam_id.message}</small>}
         </div>
@@ -79,7 +83,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Sire (registered animal)</label>
           <Controller name="sire_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={animalOptions} optionLabel="tag" optionValue="id" filter showClear placeholder="Select a sire (or use a reference below)" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="tag" optionValue="id" filter showClear placeholder="Select a sire (or use a reference below)" />
           )} />
         </div>
 

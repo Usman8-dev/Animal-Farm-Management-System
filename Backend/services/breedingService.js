@@ -82,12 +82,28 @@ async function settleReproductiveStatus({ animalId, farmId, effectiveFrom, perso
   }
 }
 
+/**
+ * Gestation length in days, chosen by species:
+ *   - Goats                          -> ~150 days (≈ 5 months)
+ *   - Cattle / buffalo / other       -> ~300 days (≈ 10 months)
+ * The breed's animal type is used to decide the bucket so the expected
+ * delivery date is predictable even when a breed has no gestation_days set.
+ */
 async function getPregnancyDuration(dam) {
-  const breed = await prisma.breed.findFirst({ where: { id: dam.breed_id } });
-  if (!breed || !breed.gestation_days) {
-    throw new AppError("Dam's breed has no gestation_days configured", 422);
+  const breed = await prisma.breed.findFirst({
+    where: { id: dam.breed_id },
+    include: { animalType: true },
+  });
+  if (!breed) {
+    throw new AppError("Dam's breed could not be resolved", 422);
   }
-  return breed.gestation_days;
+
+  const typeName = `${breed.animalType?.name || ""} ${breed.animalType?.code || ""}`.toLowerCase();
+
+  if (typeName.includes("goat")) {
+    return 150; // ≈ 5 months
+  }
+  return 300; // ≈ 10 months (default for cattle, buffalo, sheep, etc.)
 }
 
 // ── Pregnancies ──────────────────────────────────────────────
