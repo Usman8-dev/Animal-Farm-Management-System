@@ -93,7 +93,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Service date</label>
           <Controller name="service_date" control={control} render={({ field }) => (
-            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo="self" />
+            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
           )} />
           {errors.service_date && <p className="err text-xs">{errors.service_date.message}</p>}
         </div>
@@ -127,7 +127,7 @@ export function ConfirmPregnancyDialog({ open, onHide, saving, onSubmitForm }) {
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Confirmation date</label>
           <Controller name="confirmed_date" control={control} render={({ field }) => (
-            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo="self" />
+            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
           )} />
           {errors.confirmed_date && <p className="err text-xs">{errors.confirmed_date.message}</p>}
         </div>
@@ -169,7 +169,7 @@ export function ClosePregnancyDialog({ open, onHide, saving, onSubmitForm }) {
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Outcome date</label>
           <Controller name="outcome_date" control={control} render={({ field }) => (
-            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo="self" />
+            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
           )} />
           {errors.outcome_date && <p className="err text-xs">{errors.outcome_date.message}</p>}
         </div>
@@ -197,7 +197,7 @@ export function RecordBirthDialog({ open, onHide, saving, onSubmitForm }) {
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Birth date</label>
           <Controller name="birth_date" control={control} render={({ field }) => (
-            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo="self" />
+            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
           )} />
           {errors.birth_date && <p className="err text-xs">{errors.birth_date.message}</p>}
         </div>

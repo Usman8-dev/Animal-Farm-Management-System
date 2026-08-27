@@ -34,6 +34,21 @@ const pageStyles = `
   .p-datatable .p-datatable-tbody > tr:hover > td { background: var(--bg-muted) !important; }
   .p-paginator { background: transparent !important; border: none !important; color: var(--text-muted) !important; }
   .p-paginator .p-highlight { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
+  /* Global datepicker (renders to document.body) — match the app theme */
+  .p-datepicker, .p-datepicker.p-datepicker-inline {
+    background: var(--bg-card) !important; color: var(--text) !important;
+    border: 1px solid var(--border) !important; border-radius: 0.6rem;
+  }
+  .p-datepicker .p-datepicker-header { background: var(--bg-card) !important; color: var(--text-heading) !important; border-bottom: 1px solid var(--border) !important; }
+  .p-datepicker .p-datepicker-header .p-datepicker-title { color: var(--text-heading) !important; }
+  .p-datepicker .p-datepicker-header .p-datepicker-prev, .p-datepicker .p-datepicker-header .p-datepicker-next { color: var(--text) !important; }
+  .p-datepicker table th, .p-datepicker table td span {
+    color: var(--text) !important;
+  }
+  .p-datepicker table td > span.p-highlight { background: var(--primary) !important; color: #fff !important; }
+  .p-datepicker table td > span:not(.p-disabled):hover { background: var(--bg-muted) !important; color: var(--text) !important; }
+  .p-datepicker .p-datepicker-buttonbar { border-top: 1px solid var(--border) !important; }
+  .p-datepicker .p-timepicker { border-top: 1px solid var(--border) !important; }
 `;
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
