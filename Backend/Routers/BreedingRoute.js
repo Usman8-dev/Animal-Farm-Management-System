@@ -10,6 +10,7 @@ import {
   UpdatePregnancy,
   ConfirmPregnancy,
   ClosePregnancy,
+  DeletePregnancy,
   CreateBirth,
   GetBirth,
   AddKid,
@@ -82,6 +83,14 @@ router.put(
   ClosePregnancyValidator,
   validate,
   ClosePregnancy
+);
+
+router.delete(
+  '/pregnancies/:id',
+  authorizeRoles('owner', 'manager'),
+  PregnancyIdParam,
+  validate,
+  DeletePregnancy
 );
 
 router.get('/animals/:id/pregnancies', AnimalIdParam, validate, ListDamPregnancies);

@@ -79,7 +79,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         className="flex flex-col gap-4 pt-2"
       >
         <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Dam (female)</label>
+          <label className="text-[0.8rem] font-semibold">Female Animal</label>
           <Controller name="dam_id" control={control} render={({ field }) => (
             <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="label" optionValue="id" filter placeholder="Select dam" />
           )} />
@@ -87,7 +87,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Sire (registered animal)</label>
+          <label className="text-[0.8rem] font-semibold">Male Animal</label>
           <Controller name="sire_id" control={control} render={({ field }) => (
             <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a sire (or use a reference below)" />
           )} />

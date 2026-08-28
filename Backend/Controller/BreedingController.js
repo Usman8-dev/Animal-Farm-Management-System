@@ -118,6 +118,21 @@ const ClosePregnancy = async (req, res) => {
   }
 };
 
+const DeletePregnancy = async (req, res) => {
+  try {
+    await BreedingService.deletePregnancy({
+      farmId: req.user.farmId,
+      pregnancyId: Number(req.params.id),
+      personId: req.user.id,
+    });
+    return res.status(200).json({ success: true, message: 'Pregnancy record deleted successfully' });
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ success: false, message: err.message });
+    console.error('DeletePregnancy error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 // ── Births & Kids ────────────────────────────────────────────
 
 const CreateBirth = async (req, res) => {
@@ -265,6 +280,7 @@ export {
   UpdatePregnancy,
   ConfirmPregnancy,
   ClosePregnancy,
+  DeletePregnancy,
   CreateBirth,
   GetBirth,
   AddKid,

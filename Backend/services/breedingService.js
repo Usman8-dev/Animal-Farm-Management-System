@@ -226,9 +226,20 @@ async function confirmPregnancy({ farmId, pregnancyId, confirmedDate, personId }
   const confirmed = confirmedDate ? new Date(confirmedDate) : new Date();
   if (Number.isNaN(confirmed.getTime())) throw new AppError('Invalid confirmed_date', 422);
 
+  // The date provided at confirmation drives the expected delivery date:
+  // due date = confirmed date + gestation days of the dam.
+  const dam = await assertAnimalOnFarm(preg.dam_id, farmId);
+  const gestationDays = await getPregnancyDuration(dam);
+  const expectedDelivery = new Date(confirmed.getTime() + gestationDays * 24 * 60 * 60 * 1000);
+
   const updated = await prisma.pregnancy.update({
     where: { id: pregnancyId },
-    data: { is_confirmed: true, confirmed_date: confirmed, updatedby: personId },
+    data: {
+      is_confirmed: true,
+      confirmed_date: confirmed,
+      expected_delivery_date: expectedDelivery,
+      updatedby: personId,
+    },
   });
 
   await settleReproductiveStatus({
@@ -255,6 +266,17 @@ async function closePregnancy({ farmId, pregnancyId, outcome, outcomeDate, perso
   return prisma.pregnancy.update({
     where: { id: pregnancyId },
     data: { outcome, outcome_date: when, updatedby: personId },
+  });
+}
+
+async function deletePregnancy({ farmId, pregnancyId, personId }) {
+  await assertPregnancyOnFarm(pregnancyId, farmId);
+
+  // Soft delete, consistent with the rest of the app: the record stays in the
+  // database but disappears from every list (they all filter deleted_at: null).
+  return prisma.pregnancy.update({
+    where: { id: pregnancyId },
+    data: { deleted_at: new Date(), deletedby: personId },
   });
 }
 
@@ -387,11 +409,13 @@ async function upcomingDeliveries({ farmId, days = 30 }) {
   const now = new Date();
   const horizon = new Date(now.getTime() + Number(days) * 24 * 60 * 60 * 1000);
 
+  // Unconfirmed pregnancies are included too: they stay listed with an
+  // "Expected Delivery" status until someone confirms, after which the
+  // date provided at confirmation drives the expected delivery date.
   const rows = await prisma.pregnancy.findMany({
     where: {
       farm_id: farmId,
       outcome: null,
-      is_confirmed: true,
       expected_delivery_date: { lte: horizon },
       deleted_at: null,
     },
@@ -408,6 +432,8 @@ async function upcomingDeliveries({ farmId, days = 30 }) {
       dam: r.dam,
       expected_delivery_date: r.expected_delivery_date,
       service_date: r.service_date,
+      is_confirmed: r.is_confirmed,
+      confirmed_date: r.confirmed_date,
     }));
 }
 
@@ -511,6 +537,7 @@ export const BreedingService = {
   updatePregnancy,
   confirmPregnancy,
   closePregnancy,
+  deletePregnancy,
   createBirth,
   getBirth,
   addKid,

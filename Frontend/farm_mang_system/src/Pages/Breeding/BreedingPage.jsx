@@ -4,7 +4,8 @@ import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { Badge } from "primereact/badge";
-import { HeartHandshake, CheckCircle2, Plus, Baby, Flag } from "lucide-react";
+import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
+import { HeartHandshake, CheckCircle2, Plus, Baby, Flag, Trash2 } from "lucide-react";
 import api from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
@@ -248,6 +249,28 @@ const handleCreateService = async (payload) => {
     }
   };
 
+  const confirmDeletePregnancy = (row) => {
+    confirmDialog({
+      message: `Delete the service record for "${row.dam?.tag_number}"? This can't be undone.`,
+      header: "Confirm deletion",
+      icon: "pi pi-exclamation-triangle",
+      acceptClassName: "!bg-[var(--danger)] !border-[var(--danger)]",
+      accept: async () => {
+        try {
+          await api.delete(`/breeding/api/pregnancies/${row.id}`);
+          showToast({ severity: "success", summary: "Deleted", detail: "Service record removed." });
+          await refreshAll();
+        } catch (err) {
+          showToast({
+            severity: "error",
+            summary: "Delete failed",
+            detail: err.response?.data?.message || "Could not delete this record",
+          });
+        }
+      },
+    });
+  };
+
   const statusBody = (row) => {
     if (row.outcome) return <Badge value={outcomeLabel(row.outcome)} severity="info" />;
     if (row.is_confirmed) return <Badge value="Confirmed" severity="success" />;
@@ -266,6 +289,9 @@ const handleCreateService = async (payload) => {
         </>
       )}
       <Button label="Kids" icon={<HeartHandshake size={14} className="mr-1" />} size="small" severity="info" onClick={() => openKids(row)} />
+      {canManage && (
+        <Button label="Delete" icon={<Trash2 size={14} className="mr-1" />} size="small" severity="danger" text onClick={() => confirmDeletePregnancy(row)} />
+      )}
     </div>
   );
 
@@ -275,6 +301,8 @@ const handleCreateService = async (payload) => {
   return (
     <div className="font-sans">
       <style>{pageStyles}</style>
+
+      <ConfirmDialog />
 
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
@@ -302,6 +330,32 @@ const handleCreateService = async (payload) => {
           <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Upcoming deliveries</p>
           <p className="mt-1 text-2xl font-bold" style={{ color: "var(--primary)" }}>{upcoming.length}</p>
           <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>due within 30 days</p>
+
+          {upcoming.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2">
+              {upcoming.map((u) => (
+                <div
+                  key={u.pregnancy_id}
+                  className="flex items-center justify-between gap-2 rounded-lg border p-2"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <div className="min-w-0 text-xs">
+                    <p className="truncate font-semibold" style={{ color: "var(--text-heading)" }}>
+                      {u.dam?.tag_number}{u.dam?.name ? ` — ${u.dam.name}` : ""}
+                    </p>
+                    <p className="truncate" style={{ color: "var(--text-muted)" }}>
+                      {u.is_confirmed
+                        ? `Confirmed ${fmtDate(u.confirmed_date)} · due ${fmtDate(u.expected_delivery_date)}`
+                        : `Expected delivery ${fmtDate(u.expected_delivery_date)}`}
+                    </p>
+                  </div>
+                  {u.is_confirmed
+                    ? <Badge value="Confirmed" severity="success" />
+                    : <Badge value="Expected Delivery" severity="warning" />}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
           <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Confirmation rate</p>
@@ -337,7 +391,7 @@ const handleCreateService = async (payload) => {
         <Column field="service_date" header="Service date" sortable body={(r) => fmtDate(r.service_date)} />
         <Column field="expected_delivery_date" header="Expected delivery" sortable body={(r) => fmtDate(r.expected_delivery_date)} />
         <Column header="Status" body={statusBody} />
-        {canManage && <Column header="Actions" body={actionsBody} style={{ width: "230px" }} />}
+        {canManage && <Column header="Actions" body={actionsBody} style={{ width: "300px" }} />}
       </DataTable>
 
 <RecordServiceDialog
