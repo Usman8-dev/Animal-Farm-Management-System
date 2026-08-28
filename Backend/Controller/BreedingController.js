@@ -226,6 +226,21 @@ const RegisterKid = async (req, res) => {
   }
 };
 
+const DeleteKid = async (req, res) => {
+  try {
+    await BreedingService.deleteKid({
+      farmId: req.user.farmId,
+      kidId: Number(req.params.id),
+      personId: req.user.id,
+    });
+    return res.status(200).json({ success: true, message: 'Offspring record deleted successfully' });
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ success: false, message: err.message });
+    console.error('DeleteKid error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 // ── Reports ──────────────────────────────────────────────────
 
 const UpcomingDeliveries = async (req, res) => {
@@ -286,6 +301,7 @@ export {
   GetBirth,
   AddKid,
   UpdateKid,
+  DeleteKid,
   RegisterKid,
   UpcomingDeliveries,
   SuccessRate,

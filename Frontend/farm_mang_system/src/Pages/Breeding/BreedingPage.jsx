@@ -257,6 +257,32 @@ const handleCreateService = async (payload) => {
     }
   };
 
+  const confirmDeleteKid = (kid) => {
+    confirmDialog({
+      message: `Delete this ${kid.is_stillborn ? "stillborn " : ""}offspring${kid.gender ? ` (${kid.gender})` : ""}? This can't be undone.`,
+      header: "Confirm deletion",
+      icon: "pi pi-exclamation-triangle",
+      acceptClassName: "!bg-[var(--danger)] !border-[var(--danger)]",
+      accept: async () => {
+        try {
+          await api.delete(`/breeding/api/birth-kids/${kid.id}`);
+          showToast({ severity: "success", summary: "Deleted", detail: "Offspring record removed." });
+          if (birthDetail) {
+            const res = await api.get(`/breeding/api/births/${birthDetail.id}`);
+            setBirthDetail(res.data.data);
+          }
+          await refreshAll();
+        } catch (err) {
+          showToast({
+            severity: "error",
+            summary: "Delete failed",
+            detail: err.response?.data?.message || "Could not delete this offspring",
+          });
+        }
+      },
+    });
+  };
+
   const confirmDeletePregnancy = (row) => {
     confirmDialog({
       message: `Delete the service record for "${row.dam?.tag_number}"? This can't be undone.`,
@@ -588,9 +614,21 @@ const handleCreateService = async (payload) => {
                       </div>
                     )}
                   </div>
-                  {canManage && !k.animal && !k.is_stillborn && (
-                    <Button label="Register Animal" size="small" onClick={() => setKidToRegister(k)} />
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {canManage && !k.animal &&
+                      <Button
+                        label="Delete"
+                        icon={<Trash2 size={14} className="mr-1" />}
+                        size="small"
+                        severity="danger"
+                        text
+                        onClick={() => confirmDeleteKid(k)}
+                      />
+                    }
+                    {canManage && !k.animal && !k.is_stillborn && (
+                      <Button label="Register Animal" size="small" onClick={() => setKidToRegister(k)} />
+                    )}
+                  </div>
                 </div>
               ))}
               {(!birthDetail.kids || birthDetail.kids.length === 0) && (

@@ -15,6 +15,7 @@ import {
   GetBirth,
   AddKid,
   UpdateKid,
+  DeleteKid,
   RegisterKid,
   UpcomingDeliveries,
   SuccessRate,
@@ -123,6 +124,14 @@ router.put(
   UpdateKidValidator,
   validate,
   UpdateKid
+);
+
+router.delete(
+  '/birth-kids/:id',
+  authorizeRoles('owner', 'manager'),
+  KidIdParam,
+  validate,
+  DeleteKid
 );
 
 router.post(

@@ -417,6 +417,18 @@ async function updateKid({ farmId, kidId, data, personId }) {
   return prisma.birthKid.update({ where: { id: kidId }, data: patch });
 }
 
+async function deleteKid({ farmId, kidId, personId }) {
+  const kid = await assertKidOnFarm(kidId, farmId);
+  // A kid that was registered as a farm animal must not be soft-deleted here —
+  // the animal record lives on and belongs to the Animals module.
+  if (kid.animal_id) throw new AppError('This offspring is registered as an animal and cannot be deleted', 409);
+
+  return prisma.birthKid.update({
+    where: { id: kidId },
+    data: { deleted_at: new Date(), deletedby: personId },
+  });
+}
+
 // Auto-register a kid as a new farm animal (BORN_IN_FARM).
 async function registerKid({ farmId, kidId, payload, personId }) {
   const kid = await assertKidOnFarm(kidId, farmId);
@@ -607,6 +619,7 @@ export const BreedingService = {
   getBirth,
   addKid,
   updateKid,
+  deleteKid,
   registerKid,
   upcomingDeliveries,
   successRate,
