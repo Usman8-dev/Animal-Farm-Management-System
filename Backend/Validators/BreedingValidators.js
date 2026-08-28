@@ -6,16 +6,16 @@ const BirthIdParam = [param('id').isInt({ min: 1 }).withMessage('Invalid birth i
 const KidIdParam = [param('id').isInt({ min: 1 }).withMessage('Invalid kid id')];
 
 const CreatePregnancyValidator = [
-  body('dam_id').isInt({ min: 1 }).withMessage('dam_id is required'),
-  body('sire_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('sire_id must be a valid id'),
-  body('sire_ref').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 120 }).withMessage('sire_ref is too long'),
+  body('dam_id').isInt({ min: 1 }).withMessage('Please select a female animal'),
+  body('sire_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Selected male animal is invalid'),
+  body('sire_ref').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 120 }).withMessage('Male reference is too long'),
   body('service_date').notEmpty().withMessage('service_date is required').isISO8601().withMessage('service_date must be a valid date'),
   body('notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('notes is too long'),
 ];
 
 const UpdatePregnancyValidator = [
-  body('sire_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('sire_id must be a valid id'),
-  body('sire_ref').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 120 }).withMessage('sire_ref is too long'),
+  body('sire_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Selected male animal is invalid'),
+  body('sire_ref').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 120 }).withMessage('Male reference is too long'),
   body('service_date').optional({ nullable: true }).isISO8601().withMessage('service_date must be a valid date'),
   body('notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('notes is too long'),
 ];

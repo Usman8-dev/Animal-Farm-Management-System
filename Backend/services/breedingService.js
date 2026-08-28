@@ -96,7 +96,7 @@ async function getPregnancyDuration(dam) {
     include: { animalType: true },
   });
   if (!breed) {
-    throw new AppError("Dam's breed could not be resolved", 422);
+    throw new AppError("Female animal's breed could not be resolved", 422);
   }
 
   // Prefer the value entered on the breed in Master Data.
@@ -129,10 +129,10 @@ async function createPregnancy({
   let sire = null;
   if (sireId) sire = await assertAnimalOnFarm(sireId, farmId);
   if (!sireId && !sireRef?.trim()) {
-    throw new AppError('A sire (registered animal or reference) is required', 422);
+    throw new AppError('A Male Animal (registered animal or reference) is required', 422);
   }
   if (sireId && sireId === damId) {
-    throw new AppError('A dam cannot be its own sire', 422);
+    throw new AppError('The same animal cannot be selected as both the female and the male', 422);
   }
 
   const service = new Date(serviceDate);
@@ -147,7 +147,7 @@ async function createPregnancy({
     },
   });
   if (active) {
-    throw new AppError('This dam already has an open pregnancy record', 409);
+    throw new AppError('This Female Animal already has an open pregnancy record', 409);
   }
 
   const gestationDays = await getPregnancyDuration(dam);

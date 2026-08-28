@@ -386,8 +386,8 @@ const handleCreateService = async (payload) => {
         rowsPerPageOptions={[5, 10, 25]}
         emptyMessage="No breeding records yet. Record a service to get started."
       >
-        <Column header="Dam" body={(r) => damLabel(r)} sortable sortField="dam_id" />
-        <Column header="Sire" body={sireLabel} />
+        <Column header="Female" body={(r) => damLabel(r)} sortable sortField="dam_id" />
+        <Column header="Male" body={sireLabel} />
         <Column field="service_date" header="Service date" sortable body={(r) => fmtDate(r.service_date)} />
         <Column field="expected_delivery_date" header="Expected delivery" sortable body={(r) => fmtDate(r.expected_delivery_date)} />
         <Column header="Status" body={statusBody} />
@@ -449,8 +449,8 @@ const handleCreateService = async (payload) => {
         {birthDetail && (
           <div className="flex flex-col gap-4 pt-1">
             <div className="rounded-lg p-3 text-sm" style={{ backgroundColor: "var(--bg-muted)" }}>
-              <p><strong>Dam:</strong> {birthDetail.pregnancy?.dam?.tag_number}</p>
-              <p><strong>Sire:</strong> {birthDetail.pregnancy?.sire?.tag_number || birthDetail.pregnancy?.sire_ref || "—"}</p>
+              <p><strong>Female:</strong> {birthDetail.pregnancy?.dam?.tag_number}</p>
+              <p><strong>Male:</strong> {birthDetail.pregnancy?.sire?.tag_number || birthDetail.pregnancy?.sire_ref || "—"}</p>
               <p><strong>Birth date:</strong> {fmtDate(birthDetail.birth_date)}</p>
               {birthDetail.notes && <p><strong>Notes:</strong> {birthDetail.notes}</p>}
             </div>

@@ -3,15 +3,15 @@ import * as yup from "yup";
 const txt = (max) => yup.string().nullable().max(max);
 
 export const PregnancyServiceSchema = yup.object({
-  dam_id: yup.number().typeError("Dam is required").required("Dam is required"),
-  sire_id: yup.number("Sire must be a valid animal").nullable(),
+  dam_id: yup.number().typeError("Female animal is required").required("Female animal is required"),
+  sire_id: yup.number("Male animal must be a valid animal").nullable(),
   sire_ref: txt(120),
   service_date: yup.date().nullable().required("Service date is required"),
   notes: txt(500),
 });
 
 export const ConfirmPregnancySchema = yup.object({
-  confirmed_date: yup.date().nullable().required("Confirmation date is required"),
+  confirmed_date: yup.date().nullable().required("Expected delivery date is required"),
 });
 
 export const ClosePregnancySchema = yup.object({

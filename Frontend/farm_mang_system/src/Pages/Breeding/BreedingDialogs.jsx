@@ -81,7 +81,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Female Animal</label>
           <Controller name="dam_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="label" optionValue="id" filter placeholder="Select dam" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="label" optionValue="id" filter placeholder="Select female animal" />
           )} />
           {errors.dam_id && <small className="err text-xs">{errors.dam_id.message}</small>}
         </div>
@@ -89,13 +89,13 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Male Animal</label>
           <Controller name="sire_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a sire (or use a reference below)" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a male animal (or use a reference below)" />
           )} />
         </div>
 
         {!sireId && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold">Sire reference / external</label>
+            <label className="text-[0.8rem] font-semibold">Male Animal reference / external</label>
             <InputText {...register("sire_ref")} placeholder="e.g. AI semen KAZ-118" className="w-full" />
           </div>
         )}
