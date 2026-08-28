@@ -29,6 +29,13 @@ const pageStyles = `
     font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em;
     border-color: var(--border) !important; padding: 0.75rem 1rem;
   }
+  /* Dialog theming (Birth Details and any other inline dialogs) — match dark/light theme */
+  .br-dialog.p-dialog, .br-dialog .p-dialog-header, .br-dialog .p-dialog-content { background: var(--bg-card) !important; }
+  .br-dialog.p-dialog { border: 1px solid var(--border) !important; }
+  .br-dialog .p-dialog-header { color: var(--text-heading) !important; border-bottom: 1px solid var(--border) !important; }
+  .br-dialog .p-dialog-title { color: var(--text-heading) !important; font-weight: 600; }
+  .br-dialog .p-dialog-header-icon { color: var(--text-muted) !important; }
+  .br-dialog .p-dialog-content { color: var(--text) !important; }
   .p-datatable .p-datatable-tbody > tr > td {
     background: var(--bg-card) !important; border-color: var(--border) !important;
     padding: 0.75rem 1rem; font-size: 0.88rem; color: var(--text) !important;

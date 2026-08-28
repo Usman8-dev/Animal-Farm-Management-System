@@ -173,7 +173,7 @@ async function listPregnancies({ farmId }) {
     where: { farm_id: farmId, deleted_at: null },
     include: {
       dam: { select: { id: true, tag_number: true, name: true, animal_type_id: true, breed_id: true } },
-      sire: { select: { id: true, tag_number: true, name: true } },
+      sire: { select: { id: true, tag_number: true, name: true, animal_type_id: true, breed_id: true } },
       birth: { select: { id: true, birth_date: true } },
     },
     orderBy: { service_date: 'desc' },
@@ -436,9 +436,10 @@ async function registerKid({ farmId, kidId, payload, personId }) {
 
   const birth = await prisma.birth.findUnique({
     where: { id: kid.birth_id },
-    include: { pregnancy: { include: { dam: true } } },
+    include: { pregnancy: { include: { dam: true, sire: true } } },
   });
   const dam = birth.pregnancy.dam;
+  const sire = birth.pregnancy.sire;
 
   const tag = payload.tag_number?.trim();
   if (!tag) throw new AppError('tag_number is required to register the animal', 422);
@@ -452,13 +453,16 @@ async function registerKid({ farmId, kidId, payload, personId }) {
   });
   if (!gender) throw new AppError('gender_id is invalid on this farm', 422);
 
+  // Animal Type and Breed follow the father (Male); fall back to the mother
+  // when the pregnancy has no registered sire (e.g. external reference only).
+  const typeSource = sire ?? dam;
   const newAnimal = await prisma.animal.create({
     data: {
       farm_id: farmId,
       tag_number: tag,
       name: payload.name?.trim() || null,
-      animal_type_id: dam.animal_type_id,
-      breed_id: dam.breed_id,
+      animal_type_id: typeSource.animal_type_id,
+      breed_id: typeSource.breed_id,
       gender_id: gender.id,
       birth_date: birth.birth_date,
       mother_id: dam.id,

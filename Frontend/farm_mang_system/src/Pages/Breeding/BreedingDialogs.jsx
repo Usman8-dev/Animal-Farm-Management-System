@@ -224,18 +224,18 @@ export function RecordBirthDialog({
 
   useEffect(() => {
     if (!open) return;
-    // The newborn inherits its Animal Type and Breed from the mother (Female).
-    // Prefer the dam's own values carried on the pregnancy row; fall back to the
-    // animals list in case they are missing (e.g. older records).
-    const dam = animals.find((a) => a.id === pregnancy?.dam?.id);
+    // The newborn follows its father (Male): Animal Type and Breed are pre-filled
+    // from the sire. Prefer the sire's own values carried on the pregnancy row;
+    // fall back to the animals list in case they are missing (e.g. older records).
+    const sire = animals.find((a) => a.id === pregnancy?.sire?.id);
     reset({
       birth_date: new Date(),
       birth_weight_kg: null,
       notes: "",
       tag_number: "",
       name: "",
-      animal_type_id: pregnancy?.dam?.animal_type_id ?? dam?.animal_type_id ?? null,
-      breed_id: pregnancy?.dam?.breed_id ?? dam?.breed_id ?? null,
+      animal_type_id: pregnancy?.sire?.animal_type_id ?? sire?.animal_type_id ?? null,
+      breed_id: pregnancy?.sire?.breed_id ?? sire?.breed_id ?? null,
       gender_id: null,
     });
   }, [open, reset, animals, pregnancy]);
@@ -319,7 +319,7 @@ export function RecordBirthDialog({
           </div>
         </div>
         <p className="-mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
-          Animal type &amp; breed are pre-filled from the newborn's mother (♀) — update them if needed.
+          Animal type &amp; breed are pre-filled from the newborn's father (♂) — update them if needed.
         </p>
 
         <div className="flex flex-col gap-1.5">
