@@ -277,23 +277,65 @@ const handleCreateService = async (payload) => {
     return <Badge value="Service / Open" severity="warn" />;
   };
 
-  const actionsBody = (row) => (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {!row.outcome && !row.is_confirmed && canManage && (
-        <Button label="Confirm" icon={<CheckCircle2 size={14} className="mr-1" />} size="small" text onClick={() => setConfirmTarget(row)} />
-      )}
-      {!row.outcome && canManage && (
-        <>
-          <Button label="Birth" icon={<Baby size={14} className="mr-1" />} size="small" onClick={() => setBirthTarget(row)} />
-          <Button label="Close" icon={<Flag size={14} className="mr-1" />} size="small" severity="secondary" onClick={() => setCloseTarget(row)} />
-        </>
-      )}
-      <Button label="Kids" icon={<HeartHandshake size={14} className="mr-1" />} size="small" severity="info" onClick={() => openKids(row)} />
-      {canManage && (
-        <Button label="Delete" icon={<Trash2 size={14} className="mr-1" />} size="small" severity="danger" text onClick={() => confirmDeletePregnancy(row)} />
-      )}
-    </div>
-  );
+  const actionsBody = (row) => {
+    const canConfirm = !row.outcome && !row.is_confirmed && canManage;
+    const canLifecycle = !row.outcome && canManage;
+    return (
+      <div className="flex items-center gap-1">
+        {canConfirm && (
+          <Button
+            title="Confirm pregnancy"
+            icon={<CheckCircle2 size={15} style={{ color: "var(--success)" }} />}
+            size="small"
+            text
+            className="!h-8 !w-8 !rounded-lg !p-0"
+            onClick={() => setConfirmTarget(row)}
+          />
+        )}
+        {canLifecycle && (
+          <>
+            <Button
+              title="Record birth"
+              icon={<Baby size={15} style={{ color: "var(--primary)" }} />}
+              size="small"
+              text
+              className="!h-8 !w-8 !rounded-lg !p-0"
+              onClick={() => setBirthTarget(row)}
+            />
+            <Button
+              title="Close pregnancy"
+              icon={<Flag size={15} style={{ color: "var(--text-muted)" }} />}
+              size="small"
+              text
+              className="!h-8 !w-8 !rounded-lg !p-0"
+              onClick={() => setCloseTarget(row)}
+            />
+          </>
+        )}
+        <Button
+          title="View offspring"
+          icon={<HeartHandshake size={15} style={{ color: "var(--info)" }} />}
+          size="small"
+          text
+          className="!h-8 !w-8 !rounded-lg !p-0"
+          onClick={() => openKids(row)}
+        />
+        {canManage && (
+          <span className="mx-0.5 h-5 w-px" style={{ backgroundColor: "var(--border)" }} />
+        )}
+        {canManage && (
+          <Button
+            title="Delete record"
+            icon={<Trash2 size={15} style={{ color: "var(--danger)" }} />}
+            size="small"
+            text
+            className="!h-8 !w-8 !rounded-lg !p-0 !hover:bg-red-50"
+            onClick={() => confirmDeletePregnancy(row)}
+          />
+        )}
+      </div>
+    );
+  };
 
   const sireLabel = (row) => (row.sire ? `${row.sire.tag_number}${row.sire.name ? ` — ${row.sire.name}` : ""}` : row.sire_ref || "—");
   const damLabel = (row) => `${row.dam?.tag_number}${row.dam?.name ? ` — ${row.dam.name}` : ""}`;
@@ -391,7 +433,7 @@ const handleCreateService = async (payload) => {
         <Column field="service_date" header="Service date" sortable body={(r) => fmtDate(r.service_date)} />
         <Column field="expected_delivery_date" header="Expected delivery" sortable body={(r) => fmtDate(r.expected_delivery_date)} />
         <Column header="Status" body={statusBody} />
-        {canManage && <Column header="Actions" body={actionsBody} style={{ width: "300px" }} />}
+        {canManage && <Column header="Actions" body={actionsBody} align="center" style={{ width: "190px" }} />}
       </DataTable>
 
 <RecordServiceDialog
