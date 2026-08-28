@@ -37,7 +37,13 @@ const dialogStyles = `
   .br-dialog .p-button { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
 `;
 
-const animalOption = (a) => ({ id: a.id, name: a.name || "", tag: a.tag_number });
+const animalOption = (a) => ({
+  id: a.id,
+  name: a.name || "",
+  tag: a.tag_number,
+  // Shown in the dropdown list and as the selected value: "TAG — Name"
+  label: `${a.tag_number}${a.name ? ` — ${a.name}` : ""}`,
+});
 
 export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitForm }) {
   const { control, register, handleSubmit, reset, watch, formState: { errors } } = useForm({
@@ -75,7 +81,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Dam (female)</label>
           <Controller name="dam_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="tag" optionValue="id" filter placeholder="Select dam" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="label" optionValue="id" filter placeholder="Select dam" />
           )} />
           {errors.dam_id && <small className="err text-xs">{errors.dam_id.message}</small>}
         </div>
@@ -83,7 +89,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Sire (registered animal)</label>
           <Controller name="sire_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="tag" optionValue="id" filter showClear placeholder="Select a sire (or use a reference below)" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a sire (or use a reference below)" />
           )} />
         </div>
 
