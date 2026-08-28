@@ -424,6 +424,7 @@ async function upcomingDeliveries({ farmId, days = 30 }) {
     },
     include: {
       dam: { select: { id: true, tag_number: true, name: true } },
+      sire: { select: { id: true, tag_number: true, name: true } },
     },
     orderBy: { expected_delivery_date: 'asc' },
   });
@@ -433,6 +434,8 @@ async function upcomingDeliveries({ farmId, days = 30 }) {
     .map((r) => ({
       pregnancy_id: r.id,
       dam: r.dam,
+      sire: r.sire,
+      sire_ref: r.sire_ref,
       expected_delivery_date: r.expected_delivery_date,
       service_date: r.service_date,
       is_confirmed: r.is_confirmed,

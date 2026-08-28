@@ -4,8 +4,9 @@ import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { Badge } from "primereact/badge";
+import { InputText } from "primereact/inputtext";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { HeartHandshake, CheckCircle2, Plus, Baby, Flag, Trash2 } from "lucide-react";
+import { HeartHandshake, CheckCircle2, Plus, Baby, Flag, Trash2, Search } from "lucide-react";
 import api from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
@@ -85,6 +86,7 @@ function BreedingPage() {
   const [birthDetail, setBirthDetail] = useState(null);
   const [kidToRegister, setKidToRegister] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const loadReports = useCallback(async () => {
     // Fetch each report independently so one failure never blocks the others.
@@ -369,34 +371,60 @@ const handleCreateService = async (payload) => {
       {/* Report / alert cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Upcoming deliveries</p>
-          <p className="mt-1 text-2xl font-bold" style={{ color: "var(--primary)" }}>{upcoming.length}</p>
-          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>due within 30 days</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Upcoming deliveries</p>
+              <p className="mt-1 text-2xl font-bold" style={{ color: "var(--primary)" }}>{upcoming.length}</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>due within 30 days</p>
+            </div>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+              <Baby size={18} style={{ color: "var(--primary)" }} />
+            </span>
+          </div>
 
-          {upcoming.length > 0 && (
-            <div className="mt-3 flex flex-col gap-2">
-              {upcoming.map((u) => (
-                <div
-                  key={u.pregnancy_id}
-                  className="flex items-center justify-between gap-2 rounded-lg border p-2"
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <div className="min-w-0 text-xs">
-                    <p className="truncate font-semibold" style={{ color: "var(--text-heading)" }}>
-                      {u.dam?.tag_number}{u.dam?.name ? ` — ${u.dam.name}` : ""}
-                    </p>
-                    <p className="truncate" style={{ color: "var(--text-muted)" }}>
+          {upcoming.length > 0 ? (
+            <div className="mt-3 flex max-h-56 flex-col gap-2 overflow-y-auto pr-1">
+              {upcoming.map((u) => {
+                const due = u.expected_delivery_date ? new Date(u.expected_delivery_date) : null;
+                const daysLeft = due ? Math.ceil((due - new Date()) / 86400000) : null;
+                const overdue = daysLeft !== null && daysLeft < 0;
+                const dueToday = daysLeft === 0;
+                const isSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
+                const maleTxt = u.sire
+                  ? `${u.sire.tag_number}${u.sire.name ? ` — ${u.sire.name}` : ""}`
+                  : u.sire_ref || "—";
+                const dueColor = overdue
+                  ? "var(--danger)"
+                  : isSoon || dueToday
+                  ? "var(--primary)"
+                  : "var(--text-muted)";
+                return (
+                  <div
+                    key={u.pregnancy_id}
+                    className="rounded-lg border p-2.5"
+                    style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-xs font-semibold" style={{ color: "var(--text-heading)" }}>
+                        ♀ {u.dam?.tag_number}{u.dam?.name ? ` — ${u.dam.name}` : ""}
+                      </p>
                       {u.is_confirmed
-                        ? `Due ${fmtDate(u.expected_delivery_date)} · set at confirmation`
-                        : `Expected delivery ${fmtDate(u.expected_delivery_date)}`}
+                        ? <Badge value="Confirmed" severity="success" />
+                        : <Badge value="Pending" severity="warning" />}
+                    </div>
+                    <p className="mt-0.5 truncate text-xs" style={{ color: "var(--text-muted)" }}>
+                      ♂ {maleTxt}
+                    </p>
+                    <p className="mt-1 text-xs font-medium" style={{ color: dueColor }}>
+                      Due {fmtDate(due)}
+                      {overdue ? ` · ${-daysLeft} day${-daysLeft === 1 ? "" : "s"} overdue` : dueToday ? " · due today" : isSoon ? ` · in ${daysLeft} days` : ""}
                     </p>
                   </div>
-                  {u.is_confirmed
-                    ? <Badge value="Confirmed" severity="success" />
-                    : <Badge value="Expected Delivery" severity="warning" />}
-                </div>
-              ))}
+                );
+              })}
             </div>
+          ) : (
+            <p className="mt-3 text-sm" style={{ color: "var(--text-muted)" }}>No deliveries due within 30 days.</p>
           )}
         </div>
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
@@ -420,9 +448,28 @@ const handleCreateService = async (payload) => {
         </div>
       </div>
 
+      {/* Search + table */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-lg font-semibold" style={{ color: "var(--text-heading)" }}>
+          Pregnancies
+        </h2>
+        <span className="relative w-full sm:w-72">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+          <InputText
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            placeholder="Search female / male name or tag…"
+            className="!w-full !rounded-lg !border !py-2 !pl-9 !text-sm"
+            style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text)" }}
+          />
+        </span>
+      </div>
+
       <DataTable
         value={pregnancies}
         loading={loading}
+        globalFilter={globalFilter}
+        globalFilterFields={["dam.tag_number", "dam.name", "sire.tag_number", "sire.name", "sire_ref", "service_date", "expected_delivery_date"]}
         paginator
         rows={10}
         rowsPerPageOptions={[5, 10, 25]}
