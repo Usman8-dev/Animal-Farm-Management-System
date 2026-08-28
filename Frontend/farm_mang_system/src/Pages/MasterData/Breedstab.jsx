@@ -10,7 +10,7 @@ import { Dropdown } from "primereact/dropdown";
 import { InputSwitch } from "primereact/inputswitch";
 import { Button } from "primereact/button";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { Pencil, Trash2, Plus, Search } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import api from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
@@ -528,6 +528,9 @@ function BreedsTab() {
                   {errors.gestation_days.message}
                 </small>
               )}
+              <small className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Used to estimate the expected delivery date when a service is recorded
+              </small>
             </div>
             <div className="flex flex-col gap-1.5">
               <label
@@ -555,6 +558,9 @@ function BreedsTab() {
                   {errors.maturity_days.message}
                 </small>
               )}
+              <small className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Age when females are ready to breed — drives maturity alerts
+              </small>
             </div>
           </div>
 
