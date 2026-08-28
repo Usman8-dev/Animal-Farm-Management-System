@@ -135,7 +135,7 @@ export function ConfirmPregnancyDialog({ open, onHide, saving, onSubmitForm }) {
         className="flex flex-col gap-4 pt-2"
       >
         <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Confirmation date</label>
+          <label className="text-[0.8rem] font-semibold">Expected delivery date</label>
           <Controller name="confirmed_date" control={control} render={({ field }) => (
             <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
           )} />

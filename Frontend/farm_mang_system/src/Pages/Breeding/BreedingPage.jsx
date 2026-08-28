@@ -345,7 +345,7 @@ const handleCreateService = async (payload) => {
                     </p>
                     <p className="truncate" style={{ color: "var(--text-muted)" }}>
                       {u.is_confirmed
-                        ? `Confirmed ${fmtDate(u.confirmed_date)} · due ${fmtDate(u.expected_delivery_date)}`
+                        ? `Due ${fmtDate(u.expected_delivery_date)} · set at confirmation`
                         : `Expected delivery ${fmtDate(u.expected_delivery_date)}`}
                     </p>
                   </div>

@@ -226,18 +226,14 @@ async function confirmPregnancy({ farmId, pregnancyId, confirmedDate, personId }
   const confirmed = confirmedDate ? new Date(confirmedDate) : new Date();
   if (Number.isNaN(confirmed.getTime())) throw new AppError('Invalid confirmed_date', 422);
 
-  // The date provided at confirmation drives the expected delivery date:
-  // due date = confirmed date + gestation days of the dam.
-  const dam = await assertAnimalOnFarm(preg.dam_id, farmId);
-  const gestationDays = await getPregnancyDuration(dam);
-  const expectedDelivery = new Date(confirmed.getTime() + gestationDays * 24 * 60 * 60 * 1000);
-
+  // The exact date provided at confirmation becomes the expected delivery
+  // date, so the record is tracked in "Upcoming deliveries" from that day.
   const updated = await prisma.pregnancy.update({
     where: { id: pregnancyId },
     data: {
       is_confirmed: true,
       confirmed_date: confirmed,
-      expected_delivery_date: expectedDelivery,
+      expected_delivery_date: confirmed,
       updatedby: personId,
     },
   });
