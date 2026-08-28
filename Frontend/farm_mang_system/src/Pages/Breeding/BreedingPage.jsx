@@ -553,6 +553,7 @@ const handleCreateService = async (payload) => {
         open={!!kidTarget}
         onHide={() => setKidTarget(null)}
         saving={saving}
+        genders={genders}
         onSubmitForm={handleAddKid}
       />
 

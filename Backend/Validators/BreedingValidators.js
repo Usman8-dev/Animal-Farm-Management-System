@@ -43,7 +43,7 @@ const CreateBirthValidator = [
   body('kid.breed_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('breed_id must be a valid id'),
   body('kid.gender_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('gender_id must be a valid id'),
   body('kid.birth_weight_kg')
-    .optional({ nullable: true })
+    .notEmpty().withMessage('birth_weight_kg is required')
     .isFloat({ min: 0 })
     .withMessage('birth_weight_kg must be 0 or greater'),
   body('kid.notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('kid notes is too long'),
@@ -53,7 +53,7 @@ const AddKidValidator = [
   body('is_stillborn').optional().isBoolean().withMessage('is_stillborn must be a boolean'),
   body('gender').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 50 }).withMessage('gender is too long'),
   body('birth_weight_kg')
-    .optional({ nullable: true })
+    .notEmpty().withMessage('birth_weight_kg is required')
     .isFloat({ min: 0 })
     .withMessage('birth_weight_kg must be 0 or greater'),
   body('notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('notes is too long'),

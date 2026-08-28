@@ -343,16 +343,18 @@ export function RecordBirthDialog({
 
 
 
-export function AddKidDialog({ open, onHide, saving, onSubmitForm }) {
+export function AddKidDialog({ open, onHide, saving, genders, onSubmitForm }) {
   const { control, register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: yupResolver(KidSchema),
-    defaultValues: { is_stillborn: false, gender: "", birth_weight_kg: null, notes: "" },
+    defaultValues: { is_stillborn: false, gender: null, birth_weight_kg: null, notes: "" },
   });
 
   useEffect(() => {
     if (!open) return;
-    reset({ is_stillborn: false, gender: "", birth_weight_kg: null, notes: "" });
+    reset({ is_stillborn: false, gender: null, birth_weight_kg: null, notes: "" });
   }, [open, reset]);
+
+  const genderOptions = (genders || []).map((g) => ({ label: g.name, value: g.name }));
 
   return (
     <Dialog header="Register Offspring" visible={open} onHide={onHide} style={{ width: "28rem" }} className="br-dialog">
@@ -360,7 +362,7 @@ export function AddKidDialog({ open, onHide, saving, onSubmitForm }) {
       <form
         onSubmit={handleSubmit((d) => onSubmitForm({
           is_stillborn: !!d.is_stillborn,
-          gender: d.gender?.trim() || null,
+          gender: d.gender || null,
           birth_weight_kg: d.birth_weight_kg ?? null,
           notes: d.notes?.trim() || null,
         }))}
@@ -373,11 +375,13 @@ export function AddKidDialog({ open, onHide, saving, onSubmitForm }) {
           <label htmlFor="kidStill" className="text-sm">Stillborn</label>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Sex / gender (optional)</label>
-          <InputText {...register("gender")} placeholder="e.g. Female" className="w-full" />
+          <label className="text-[0.8rem] font-semibold">Sex / gender</label>
+          <Controller name="gender" control={control} render={({ field }) => (
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={genderOptions} optionLabel="label" optionValue="value" placeholder="Select gender" showClear filter className="w-full" />
+          )} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Birth weight (kg)</label>
+          <label className="text-[0.8rem] font-semibold">Birth weight (kg) <span style={{ color: "var(--danger)" }}>*</span></label>
           <Controller name="birth_weight_kg" control={control} render={({ field }) => (
             <InputNumber value={field.value} onValueChange={(e) => field.onChange(e.value)} minFractionDigits={0} maxFractionDigits={2} className="w-full" inputClassName="w-full" />
           )} />

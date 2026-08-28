@@ -47,7 +47,11 @@ export const BirthSchema = yup.object({
 export const KidSchema = yup.object({
   is_stillborn: yup.boolean().default(false),
   gender: yup.string().nullable().max(50),
-  birth_weight_kg: yup.number().nullable().min(0, "Weight cannot be negative"),
+  birth_weight_kg: yup
+    .number()
+    .typeError("Birth weight is required")
+    .required("Birth weight is required")
+    .min(0, "Weight cannot be negative"),
   notes: txt(500),
 });
 
