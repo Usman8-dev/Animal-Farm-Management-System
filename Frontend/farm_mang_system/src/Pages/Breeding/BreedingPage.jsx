@@ -70,6 +70,8 @@ function BreedingPage() {
 
   const [animals, setAnimals] = useState([]);
   const [genders, setGenders] = useState([]);
+  const [animalTypes, setAnimalTypes] = useState([]);
+  const [breeds, setBreeds] = useState([]);
   const [pregnancies, setPregnancies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [upcoming, setUpcoming] = useState([]);
@@ -129,12 +131,16 @@ function BreedingPage() {
 
   const loadReferences = useCallback(async () => {
     try {
-      const [a, g] = await Promise.all([
+      const [a, g, t, b] = await Promise.all([
         api.get("/animal/api/animals"),
         api.get("/animal/api/genders"),
+        api.get("/animal/api/animal-types"),
+        api.get("/animal/api/breeds"),
       ]);
       setAnimals(a.data.data || []);
       setGenders(g.data.data || []);
+      setAnimalTypes(t.data.data || []);
+      setBreeds(b.data.data || []);
     } catch (err) {
       showToast({ severity: "error", summary: "Failed to load", detail: err.response?.data?.message || "Could not load reference data" });
     }
@@ -509,6 +515,11 @@ const handleCreateService = async (payload) => {
         open={!!birthTarget}
         onHide={() => setBirthTarget(null)}
         saving={saving}
+        animalTypes={animalTypes}
+        breeds={breeds}
+        genders={genders}
+        animals={animals}
+        pregnancy={birthTarget}
         onSubmitForm={handleBirth}
       />
 

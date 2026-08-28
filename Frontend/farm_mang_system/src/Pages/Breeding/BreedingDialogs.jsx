@@ -189,37 +189,159 @@ export function ClosePregnancyDialog({ open, onHide, saving, onSubmitForm }) {
   );
 }
 
-export function RecordBirthDialog({ open, onHide, saving, onSubmitForm }) {
-  const { control, register, handleSubmit, reset, formState: { errors } } = useForm({
+export function RecordBirthDialog({
+  open,
+  onHide,
+  saving,
+  animalTypes,
+  breeds,
+  genders,
+  animals,
+  pregnancy,
+  onSubmitForm,
+}) {
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
     resolver: yupResolver(BirthSchema),
-    defaultValues: { birth_date: new Date(), notes: "" },
+    defaultValues: {
+      birth_date: new Date(),
+      birth_weight_kg: null,
+      notes: "",
+      tag_number: "",
+      name: "",
+      animal_type_id: null,
+      breed_id: null,
+      gender_id: null,
+    },
   });
 
-  useEffect(() => { if (open) reset({ birth_date: new Date(), notes: "" }); }, [open, reset]);
+  useEffect(() => {
+    if (!open) return;
+    // The newborn inherits its Animal Type and Breed from the mother (Female).
+    // Prefer the dam's own values carried on the pregnancy row; fall back to the
+    // animals list in case they are missing (e.g. older records).
+    const dam = animals.find((a) => a.id === pregnancy?.dam?.id);
+    reset({
+      birth_date: new Date(),
+      birth_weight_kg: null,
+      notes: "",
+      tag_number: "",
+      name: "",
+      animal_type_id: pregnancy?.dam?.animal_type_id ?? dam?.animal_type_id ?? null,
+      breed_id: pregnancy?.dam?.breed_id ?? dam?.breed_id ?? null,
+      gender_id: null,
+    });
+  }, [open, reset, animals, pregnancy]);
+
+  const typeId = watch("animal_type_id");
+  const typeOptions = (animalTypes || []).map((t) => ({ label: t.name, value: t.id }));
+  const breedOptions = (breeds || [])
+    .filter((b) => b.animal_type_id === typeId)
+    .map((b) => ({ label: b.name, value: b.id }));
+  const genderOptions = (genders || []).map((g) => ({ label: g.name, value: g.id }));
 
   return (
-    <Dialog header="Record Birth" visible={open} onHide={onHide} style={{ width: "28rem" }} className="br-dialog">
+    <Dialog header="Record Birth" visible={open} onHide={onHide} style={{ width: "32rem" }} className="br-dialog">
       <style>{dialogStyles}</style>
       <form
-        onSubmit={handleSubmit((d) => onSubmitForm({ birth_date: new Date(d.birth_date).toISOString(), notes: d.notes?.trim() || null }))}
+        onSubmit={handleSubmit((d) =>
+          onSubmitForm({
+            birth_date: new Date(d.birth_date).toISOString(),
+            notes: d.notes?.trim() || null,
+            kid: {
+              tag_number: d.tag_number.trim(),
+              name: d.name?.trim() || null,
+              animal_type_id: d.animal_type_id,
+              breed_id: d.breed_id,
+              gender_id: d.gender_id,
+              birth_weight_kg: d.birth_weight_kg ?? null,
+              notes: d.notes?.trim() || null,
+            },
+          })
+        )}
         className="flex flex-col gap-4 pt-2"
       >
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Birth date</label>
-          <Controller name="birth_date" control={control} render={({ field }) => (
-            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
-          )} />
-          {errors.birth_date && <p className="err text-xs">{errors.birth_date.message}</p>}
+        <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}>
+          This will record the birth and automatically register the newborn as a new animal.
+          {pregnancy?.dam && <div><strong style={{ color: "var(--text)" }}>Female:</strong> {pregnancy.dam.tag_number}</div>}
+          {pregnancy?.sire && <div><strong style={{ color: "var(--text)" }}>Male:</strong> {pregnancy.sire.tag_number}</div>}
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[0.8rem] font-semibold">Birth date</label>
+            <Controller name="birth_date" control={control} render={({ field }) => (
+              <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
+            )} />
+            {errors.birth_date && <p className="err text-xs">{errors.birth_date.message}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[0.8rem] font-semibold">Birth weight (kg)</label>
+            <Controller name="birth_weight_kg" control={control} render={({ field }) => (
+              <InputNumber value={field.value} onValueChange={(e) => field.onChange(e.value)} minFractionDigits={0} maxFractionDigits={2} className="w-full" inputClassName="w-full" />
+            )} />
+            {errors.birth_weight_kg && <p className="err text-xs">{errors.birth_weight_kg.message}</p>}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[0.8rem] font-semibold">Tag number</label>
+          <InputText {...register("tag_number")} placeholder="Unique tag on this farm" className="w-full" />
+          {errors.tag_number && <p className="err text-xs">{errors.tag_number.message}</p>}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[0.8rem] font-semibold">Name (optional)</label>
+          <InputText {...register("name")} placeholder="e.g. Buttercup Jr." className="w-full" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[0.8rem] font-semibold">Animal type</label>
+            <Controller name="animal_type_id" control={control} render={({ field }) => (
+              <Dropdown value={field.value} onChange={(e) => { field.onChange(e.value); setValue("breed_id", null); }} options={typeOptions} optionLabel="label" optionValue="value" placeholder="Select type" filter className="w-full" />
+            )} />
+            {errors.animal_type_id && <p className="err text-xs">{errors.animal_type_id.message}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[0.8rem] font-semibold">Breed</label>
+            <Controller name="breed_id" control={control} render={({ field }) => (
+              <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={breedOptions} optionLabel="label" optionValue="value" placeholder={typeId ? "Select breed" : "Pick type first"} disabled={!typeId} filter className="w-full" />
+            )} />
+            {errors.breed_id && <p className="err text-xs">{errors.breed_id.message}</p>}
+          </div>
+        </div>
+        <p className="-mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
+          Animal type &amp; breed are pre-filled from the newborn's mother (♀) — update them if needed.
+        </p>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[0.8rem] font-semibold">Gender</label>
+          <Controller name="gender_id" control={control} render={({ field }) => (
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={genderOptions} optionLabel="label" optionValue="value" placeholder="Select gender" className="w-full" />
+          )} />
+          {errors.gender_id && <p className="err text-xs">{errors.gender_id.message}</p>}
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Notes (optional)</label>
           <InputTextarea rows={2} {...register("notes")} className="w-full" />
         </div>
+
         <Button type="submit" label={saving ? "Saving…" : "Save Birth"} loading={saving} className="!w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold" />
       </form>
     </Dialog>
   );
 }
+
+
 
 export function AddKidDialog({ open, onHide, saving, onSubmitForm }) {
   const { control, register, handleSubmit, reset, formState: { errors } } = useForm({

@@ -36,6 +36,17 @@ const CreateBirthValidator = [
   body('pregnancy_id').isInt({ min: 1 }).withMessage('pregnancy_id is required'),
   body('birth_date').optional({ nullable: true }).isISO8601().withMessage('birth_date must be a valid date'),
   body('notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('notes is too long'),
+  // Auto-register newborn as an animal (same fields as the New Animal form).
+  body('kid.tag_number').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 40 }).withMessage('tag_number is too long'),
+  body('kid.name').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 80 }).withMessage('name is too long'),
+  body('kid.animal_type_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('animal_type_id must be a valid id'),
+  body('kid.breed_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('breed_id must be a valid id'),
+  body('kid.gender_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('gender_id must be a valid id'),
+  body('kid.birth_weight_kg')
+    .optional({ nullable: true })
+    .isFloat({ min: 0 })
+    .withMessage('birth_weight_kg must be 0 or greater'),
+  body('kid.notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('kid notes is too long'),
 ];
 
 const AddKidValidator = [

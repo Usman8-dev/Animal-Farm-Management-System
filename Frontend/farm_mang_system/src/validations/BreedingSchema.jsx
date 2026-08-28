@@ -23,8 +23,25 @@ export const ClosePregnancySchema = yup.object({
 });
 
 export const BirthSchema = yup.object({
+  // Birth info
   birth_date: yup.date().nullable().required("Birth date is required"),
+  birth_weight_kg: yup.number().nullable().min(0, "Weight cannot be negative"),
   notes: txt(500),
+  // Newborn animal (auto-registered) — same fields as the New Animal form
+  tag_number: yup.string().trim().required("Tag number is required").max(40, "Max 40 characters"),
+  name: yup.string().trim().max(80, "Max 80 characters").nullable(),
+  animal_type_id: yup
+    .number()
+    .typeError("Select an animal type")
+    .required("Select an animal type"),
+  breed_id: yup
+    .number()
+    .typeError("Select a breed")
+    .required("Select a breed"),
+  gender_id: yup
+    .number()
+    .typeError("Select a gender")
+    .required("Select a gender"),
 });
 
 export const KidSchema = yup.object({

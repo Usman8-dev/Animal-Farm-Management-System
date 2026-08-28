@@ -1,4 +1,5 @@
 import prisma from '../prisma/client.js';
+import { AnimalService } from './animalService.js';
 
 class AppError extends Error {
   constructor(message, statusCode) {
@@ -171,7 +172,7 @@ async function listPregnancies({ farmId }) {
   return prisma.pregnancy.findMany({
     where: { farm_id: farmId, deleted_at: null },
     include: {
-      dam: { select: { id: true, tag_number: true, name: true } },
+      dam: { select: { id: true, tag_number: true, name: true, animal_type_id: true, breed_id: true } },
       sire: { select: { id: true, tag_number: true, name: true } },
       birth: { select: { id: true, birth_date: true } },
     },
@@ -283,7 +284,7 @@ async function deletePregnancy({ farmId, pregnancyId, personId }) {
   });
 }
 
-async function createBirth({ farmId, pregnancyId, birthDate, notes, personId }) {
+async function createBirth({ farmId, pregnancyId, birthDate, notes, kid, personId }) {
   await assertPregnancyOnFarm(pregnancyId, farmId);
   const existing = await prisma.birth.findFirst({
     where: { pregnancy_id: pregnancyId, deleted_at: null },
@@ -292,6 +293,44 @@ async function createBirth({ farmId, pregnancyId, birthDate, notes, personId }) 
 
   const bd = birthDate ? new Date(birthDate) : new Date();
   if (Number.isNaN(bd.getTime())) throw new AppError('Invalid birth_date', 422);
+
+  // Optional auto-registration of the newborn as a farm animal. When a `kid`
+  // payload arrives, the newborn is created (BORN_IN_FARM) and linked to the
+  // birth in the same transaction — one action, not three.
+  let newborn = null;
+  if (kid && kid.tag_number) {
+    const tag = String(kid.tag_number).trim();
+    if (!tag) throw new AppError('tag_number is required to create the newborn', 422);
+
+    await AnimalService.assertUniqueTagNumber({ farm_id: farmId, tag_number: tag });
+    await AnimalService.validateClassification({
+      animal_type_id: Number(kid.animal_type_id),
+      breed_id: Number(kid.breed_id),
+      gender_id: Number(kid.gender_id),
+      farm_id: farmId,
+    });
+
+    const preg = await prisma.pregnancy.findUnique({
+      where: { id: pregnancyId },
+      include: { dam: true, sire: true },
+    });
+
+    newborn = {
+      farm_id: farmId,
+      tag_number: tag,
+      name: kid.name?.trim() || null,
+      animal_type_id: Number(kid.animal_type_id),
+      breed_id: Number(kid.breed_id),
+      gender_id: Number(kid.gender_id),
+      birth_date: bd,
+      acquisition_type: 'BORN_IN_FARM',
+      acquired_on: bd,
+      mother_id: preg.dam?.id ?? null,
+      father_id: preg.sire?.id ?? null,
+      notes: kid.notes?.trim() || null,
+      createdby: personId,
+    };
+  }
 
   return prisma.$transaction(async (tx) => {
     const birth = await tx.birth.create({
@@ -307,9 +346,29 @@ async function createBirth({ farmId, pregnancyId, birthDate, notes, personId }) 
       where: { id: pregnancyId },
       data: { outcome: 'LIVE_BIRTH', outcome_date: bd, updatedby: personId },
     });
+
+    if (newborn) {
+      const animal = await tx.animal.create({ data: newborn });
+      await tx.birthKid.create({
+        data: {
+          birth_id: birth.id,
+          animal_id: animal.id,
+          is_stillborn: false,
+          birth_weight_kg: kid.birth_weight_kg != null ? Number(kid.birth_weight_kg) : null,
+          notes: kid.notes?.trim() || null,
+          createdby: personId,
+        },
+      });
+    }
+
     return tx.birth.findUnique({
       where: { id: birth.id },
-      include: { kids: { where: { deleted_at: null } } },
+      include: {
+        kids: {
+          where: { deleted_at: null },
+          include: { animal: true },
+        },
+      },
     });
   });
 }

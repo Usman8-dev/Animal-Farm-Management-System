@@ -137,12 +137,13 @@ const DeletePregnancy = async (req, res) => {
 
 const CreateBirth = async (req, res) => {
   try {
-    const { pregnancy_id, birth_date, notes } = req.body;
+    const { pregnancy_id, birth_date, notes, kid } = req.body;
     const data = await BreedingService.createBirth({
       farmId: req.user.farmId,
       pregnancyId: Number(pregnancy_id),
       birthDate: birth_date,
       notes: notes?.trim() || null,
+      kid: kid || null,
       personId: req.user.id,
     });
     return res.status(201).json({ success: true, data });
