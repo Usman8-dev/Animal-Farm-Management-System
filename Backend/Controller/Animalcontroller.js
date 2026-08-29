@@ -189,6 +189,7 @@ const UpdateAnimal = async (req, res) => {
       mother_id,
       father_id,
       notes,
+      breeder,
     } = req.body;
 
     if (animal_type_id || breed_id || gender_id) {
@@ -227,6 +228,7 @@ const UpdateAnimal = async (req, res) => {
         mother_id: mother_id !== undefined ? (mother_id ? Number(mother_id) : null) : undefined,
         father_id: father_id !== undefined ? (father_id ? Number(father_id) : null) : undefined,
         notes,
+        breeder: breeder === undefined ? undefined : !!breeder,
         updatedby: personId,
       },
       include: animalInclude,
@@ -242,8 +244,43 @@ const UpdateAnimal = async (req, res) => {
   }
 };
 
-// ── Soft Delete ──────────────────────────────────────────────
+// Toggle the "breeder" flag for an animal. Kept as a dedicated lightweight
+// endpoint because PUT /animals/:id requires the full animal payload.
+const SetBreeder = async (req, res) => {
+  try {
+    const farmId = req.user.farmId;
+    const personId = req.user.id;
+    const animalId = Number(req.params.id);
+    const { breeder } = req.body;
 
+    if (typeof breeder !== 'boolean') {
+      return res.status(422).json({ success: false, message: 'breeder must be a boolean' });
+    }
+
+    const existing = await prisma.animal.findFirst({
+      where: { id: animalId, farm_id: farmId, deleted_at: null },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Animal not found' });
+    }
+
+    const updated = await prisma.animal.update({
+      where: { id: animalId },
+      data: { breeder, updatedby: personId },
+      include: animalInclude,
+    });
+
+    return res.status(200).json({ success: true, data: updated });
+  } catch (err) {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ success: false, message: err.message });
+    }
+    console.error('SetBreeder error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// ── Soft Delete ──────────────────────────────────────────────
 const DeleteAnimal = async (req, res) => {
   try {
     const farmId = req.user.farmId;
@@ -578,6 +615,7 @@ export {
   CreateAnimal,
   UpdateAnimal,
   DeleteAnimal,
+  SetBreeder,
   GetOffspring,
   AddAnimalImage,
   SetPrimaryImage,

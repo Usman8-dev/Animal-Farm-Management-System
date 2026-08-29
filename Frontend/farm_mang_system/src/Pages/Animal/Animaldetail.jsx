@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { InputText } from "primereact/inputtext";
+import { InputSwitch } from "primereact/inputswitch";
 import { Button } from "primereact/button";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import ChangeStatusDialog from "../../Pages/Lifecycle/Changestatusdialog";
@@ -18,6 +19,7 @@ import {
   FileDown,
   Tag,
   Calendar,
+  BadgeCheck,
 } from "lucide-react";
 import api, { API_BASE_URL } from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
@@ -136,6 +138,27 @@ function AnimalDetail() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleBreeder = async (checked) => {
+    // optimistic update, rollback on failure
+    const previous = animal.breeder;
+    setAnimal((prev) => ({ ...prev, breeder: checked }));
+    try {
+      await api.put(`/animal/api/animals/${id}/breeder`, { breeder: checked });
+      showToast({
+        severity: "success",
+        summary: "Updated",
+        detail: checked ? "Marked as breeder." : "Removed from breeders.",
+      });
+    } catch (err) {
+      setAnimal((prev) => ({ ...prev, breeder: previous }));
+      showToast({
+        severity: "error",
+        summary: "Update failed",
+        detail: err.response?.data?.message || "Could not update the breeder flag",
+      });
     }
   };
 
@@ -402,6 +425,39 @@ function AnimalDetail() {
                     {animal.gender.name}
                   </span>
                 )}
+                {(() => {
+                  // Breeder applies to males / other genders — never females.
+                  const isFemaleGender = (animal.gender?.name || "").toLowerCase().includes("female");
+                  if (isFemaleGender) return null;
+                  return (
+                    <span
+                      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition-colors"
+                      style={{
+                        backgroundColor: animal.breeder
+                          ? "color-mix(in srgb, var(--primary) 16%, transparent)"
+                          : "var(--bg-muted)",
+                        borderColor: animal.breeder
+                          ? "color-mix(in srgb, var(--primary) 40%, transparent)"
+                          : "var(--border)",
+                        color: animal.breeder ? "var(--primary)" : "var(--text-muted)",
+                      }}
+                      title={canManage ? "Toggle whether this animal is a breeder" : undefined}
+                    >
+                      <BadgeCheck
+                        size={14}
+                        style={{ color: animal.breeder ? "var(--primary)" : "var(--text-muted)" }}
+                      />
+                      <span>Breeder</span>
+                      <InputSwitch
+                        inputId="breederToggle"
+                        checked={!!animal.breeder}
+                        disabled={!canManage}
+                        onChange={(e) => handleToggleBreeder(e.value)}
+                        style={{ transform: "scale(.72)", margin: "-.35rem -.35rem -.35rem 0" }}
+                      />
+                    </span>
+                  );
+                })()}
               </div>
 
               {/* Current statuses */}

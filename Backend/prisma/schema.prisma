@@ -237,6 +237,9 @@ model Animal {
   acquired_on       DateTime?
   notes             String?
 
+  // Marks this animal as an active breeder (used by breeding workflows)
+  breeder           Boolean         @default(false)
+
   created_at        DateTime        @default(now())
   updated_at        DateTime        @updatedAt
   deleted_at        DateTime?

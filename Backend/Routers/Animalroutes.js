@@ -37,6 +37,7 @@ import {
   CreateAnimal,
   UpdateAnimal,
   DeleteAnimal,
+  SetBreeder,
   GetOffspring,
   AddAnimalImage,
   SetPrimaryImage,
@@ -80,6 +81,9 @@ router.get('/animals/:id', AnimalIdParamValidator, validate, GetAnimal);
 router.post('/animals',authorizeRoles('owner', 'manager', 'worker'), AnimalValidator, validate, CreateAnimal);
 
 router.put('/animals/:id',authorizeRoles('owner', 'manager', 'worker'),AnimalIdParamValidator, AnimalValidator, validate, UpdateAnimal);
+
+// Toggle the "breeder" flag — dedicated lightweight endpoint (no full payload needed)
+router.put('/animals/:id/breeder',authorizeRoles('owner', 'manager'),AnimalIdParamValidator, validate, SetBreeder);
 
 router.delete('/animals/:id', authorizeRoles('owner', 'manager'), AnimalIdParamValidator, validate, DeleteAnimal);
 
