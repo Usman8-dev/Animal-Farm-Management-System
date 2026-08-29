@@ -6,8 +6,14 @@ import { Dialog } from "primereact/dialog";
 import { Badge } from "primereact/badge";
 import { InputText } from "primereact/inputtext";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { HeartHandshake, CheckCircle2, Plus, Baby, Flag, Trash2, Search } from "lucide-react";
+import { HeartHandshake, CheckCircle2, Plus, Baby, Flag, Trash2, Search, FileDown } from "lucide-react";
 import api from "../../apis/axios";
+import {
+  generateUpcomingDeliveriesPdf,
+  generateSuccessRatePdf,
+  generateBirthOutcomesPdf,
+  generateMaturityAlertsPdf,
+} from "../../utils/reportPdf";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -82,9 +88,10 @@ function BreedingPage() {
   const [pregnancies, setPregnancies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [upcoming, setUpcoming] = useState([]);
-  const [successRate, setSuccessRate] = useState(null);
+    const [successRate, setSuccessRate] = useState(null);
   const [birthOutcomes, setBirthOutcomes] = useState(null);
   const [maturityAlerts, setMaturityAlerts] = useState([]);
+  const [pdfLoading, setPdfLoading] = useState({});
 
   // Dialog state
   const [serviceOpen, setServiceOpen] = useState(false);
@@ -381,6 +388,37 @@ const handleCreateService = async (payload) => {
   const sireLabel = (row) => (row.sire ? `${row.sire.tag_number}${row.sire.name ? ` — ${row.sire.name}` : ""}` : row.sire_ref || "—");
   const damLabel = (row) => `${row.dam?.tag_number}${row.dam?.name ? ` — ${row.dam.name}` : ""}`;
 
+    // ── PDF report handlers — mirror the Weight & Valuation "Reports" card. ──
+  const downloadPdf = async (key, url, genFn, fileName, toastDetail) => {
+    setPdfLoading((l) => ({ ...l, [key]: true }));
+    try {
+      const res = await api.get(url);
+      genFn({ data: res.data.data, generatedBy: user?.name });
+      showToast({ severity: "success", summary: "PDF ready", detail: toastDetail });
+    } catch (err) {
+      showToast({ severity: "error", summary: "PDF failed", detail: err.response?.data?.message || "Could not generate PDF" });
+    } finally {
+      setPdfLoading((l) => {
+        const c = { ...l };
+        delete c[key];
+        return c;
+      });
+    }
+  };
+
+  const handleUpcomingPdf = () =>
+    downloadPdf("upcoming", "/breeding/api/reports/breeding/upcoming-deliveries", generateUpcomingDeliveriesPdf, "upcoming-deliveries", "Upcoming Deliveries PDF downloaded.");
+  const handleSuccessPdf = () =>
+    downloadPdf("success", "/breeding/api/reports/breeding/success-rate", generateSuccessRatePdf, "pregnancy-success-rate", "Pregnancy success rate PDF downloaded.");
+  const handleBirthPdf = () =>
+    downloadPdf("birth", "/breeding/api/reports/breeding/birth-outcomes", generateBirthOutcomesPdf, "birth-outcomes", "Birth outcomes PDF downloaded.");
+  const handleMaturityPdf = () =>
+    downloadPdf("maturity", "/breeding/api/reports/breeding/maturity-alerts", generateMaturityAlertsPdf, "maturity-alerts", "Maturity alerts PDF downloaded.");
+
+  const birthSurvival = birthOutcomes?.total_kids
+    ? Math.round((birthOutcomes.live_kids / birthOutcomes.total_kids) * 100)
+    : 0;
+
   return (
     <div className="font-sans">
       <style>{pageStyles}</style>
@@ -646,6 +684,54 @@ const handleCreateService = async (payload) => {
           </div>
         )}
       </Dialog>
+
+
+              {/* Reports / PDF downloads — same style as the Weight & Valuation "Reports" card */}
+      <div className="mb-4 mt-5 rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
+        <div className="mb-1 flex items-center gap-2">
+          <FileDown size={18} style={{ color: "var(--primary)" }} />
+          <h2 className="font-display text-lg font-semibold" style={{ color: "var(--text-heading)" }}>
+            Reports
+          </h2>
+        </div>
+        <p className="mb-4 text-sm" style={{ color: "var(--text-muted)" }}>
+          Generate a PDF for each farm report.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Button
+            label={pdfLoading.upcoming ? "Generating…" : "Upcoming Deliveries"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={pdfLoading.upcoming}
+            onClick={handleUpcomingPdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+          <Button
+            label={pdfLoading.success ? "Generating…" : "Pregnancy Success Rate"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={pdfLoading.success}
+            onClick={handleSuccessPdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+          <Button
+            label={pdfLoading.birth ? "Generating…" : "Birth Outcomes"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={pdfLoading.birth}
+            onClick={handleBirthPdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+          <Button
+            label={pdfLoading.maturity ? "Generating…" : "Maturity Alerts"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={pdfLoading.maturity}
+            onClick={handleMaturityPdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+        </div>
+      </div>
     </div>
   );
 }

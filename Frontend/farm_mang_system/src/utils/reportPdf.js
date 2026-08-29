@@ -269,6 +269,168 @@ export function generateHerdOverviewPdf({ data, generatedBy = "" }) {
     ]),
   });
 
-  finalize(doc, "herd-overview.pdf");
+    finalize(doc, "herd-overview.pdf");
+}
+
+
+// Report 4: Breeding — upcoming deliveries -----------------------------------
+
+export function generateUpcomingDeliveriesPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Upcoming Deliveries"
+  );
+
+  const rows = data || [];
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = pageW - 28;
+  drawStatCard(doc, 14, 56, cardW, 32, "Due within 30 days", `${rows.length} pregnancies`);
+
+  const y = 100;
+  if (rows.length) {
+    const tagOf = (a) =>
+      a && a.tag_number ? `${a.tag_number}${a.name ? ` — ${a.name}` : ""}` : "—";
+    themedTable(doc, {
+      startY: y,
+      head: [["No.", "Female", "Male", "Service date", "Expected delivery", "Status"]],
+      body: rows.map((u, i) => [
+        i + 1,
+        tagOf(u.dam),
+        u.sire ? tagOf(u.sire) : u.sire_ref || "—",
+        dateStr(u.service_date),
+        dateStr(u.expected_delivery_date),
+        u.is_confirmed ? "Confirmed" : "Pending",
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No deliveries expected in the next 30 days.", 14, y);
+  }
+
+  finalize(doc, "upcoming-deliveries.pdf");
+}
+
+
+// Report 5: Breeding — pregnancy success rate ---------------------------------
+
+export function generateSuccessRatePdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Pregnancy Success Rate"
+  );
+
+  const d = data || {};
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 42) / 2;
+  drawStatCard(doc, 14, 56, cardW, 36, "Rate", `${d.rate ?? 0}%`);
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 36, "Confirmed", `${d.confirmed ?? 0}/${d.total ?? 0}`);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...PRIMARY);
+  doc.text("Outcome breakdown", 14, 104);
+
+  themedTable(doc, {
+    startY: 110,
+    head: [["Outcome", "Count"]],
+    body: [
+      ["Confirmed / resolved", d.confirmed ?? 0],
+      ["Live births", d.live_births ?? 0],
+      ["Stillbirths", d.stillbirths ?? 0],
+      ["Aborted", d.aborted ?? 0],
+      ["Not pregnant", d.not_pregnant ?? 0],
+      ["Total services", d.total ?? 0],
+    ],
+  });
+
+  finalize(doc, "pregnancy-success-rate.pdf");
+}
+
+
+// Report 6: Breeding — birth outcomes -----------------------------------------
+
+export function generateBirthOutcomesPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Birth Outcomes"
+  );
+
+  const d = data || {};
+  const total = Number(d.total_kids ?? 0);
+  const live = Number(d.live_kids ?? 0);
+  const survival = total ? Math.round((live / total) * 100) : 0;
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 42) / 2;
+  drawStatCard(doc, 14, 56, cardW, 36, "Live kids", `${live}`);
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 36, "Stillborn kids", `${d.stillborn_kids ?? 0}`);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...PRIMARY);
+  doc.text("Summary", 14, 104);
+
+  themedTable(doc, {
+    startY: 110,
+    head: [["Metric", "Value"]],
+    body: [
+      ["Births recorded", d.births ?? 0],
+      ["Total kids born", total],
+      ["Live kids", live],
+      ["Stillborn kids", d.stillborn_kids ?? 0],
+      ["Survival rate", `${survival}%`],
+      ["Avg litter size", num(d.avg_litter_size ?? 0, 2)],
+    ],
+  });
+
+  finalize(doc, "birth-outcomes.pdf");
+}
+
+
+// Report 7: Breeding — maturity alerts ----------------------------------------
+
+export function generateMaturityAlertsPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Maturity Alerts"
+  );
+
+  const rows = data || [];
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = pageW - 28;
+  drawStatCard(doc, 14, 56, cardW, 32, "Ready to breed soon (30-day window)", `${rows.length} animals`);
+
+  const y = 100;
+  if (rows.length) {
+    themedTable(doc, {
+      startY: y,
+      head: [["Tag", "Name", "Breed", "Age (days)", "Maturity (days)", "Matures in"]],
+      body: rows.map((m) => [
+        m.tag_number || "—",
+        m.name || "—",
+        m.breed || "—",
+        m.age_days ?? 0,
+        m.maturity_days ?? 0,
+        m.days_until_maturity === 0 ? "Ready now" : `${m.days_until_maturity} day${m.days_until_maturity === 1 ? "" : "s"}`,
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No animals approaching breeding maturity.", 14, y);
+  }
+
+  finalize(doc, "maturity-alerts.pdf");
 }
 
