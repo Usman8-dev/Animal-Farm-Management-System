@@ -58,10 +58,12 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
 
   const sireId = watch("sire_id");
 
-  // Dam must be female; sire may be any registered animal except a female.
+  // Dam must be female; sire must be a male flagged as a breeder.
   const isFemaleAnimal = (a) => (a.gender?.name || "").toLowerCase().includes("female");
   const damOptions = animals.filter(isFemaleAnimal).map(animalOption);
-  const sireOptions = animals.filter((a) => !isFemaleAnimal(a)).map(animalOption);
+  const sireOptions = animals
+    .filter((a) => !isFemaleAnimal(a) && a.breeder)
+    .map(animalOption);
 
   return (
     <Dialog header="Record Service / Mating" visible={open} onHide={onHide} style={{ width: "30rem" }} className="br-dialog">
@@ -89,7 +91,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Male Animal</label>
           <Controller name="sire_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a male animal (or use a reference below)" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a male breeder" />
           )} />
         </div>
 
