@@ -19,6 +19,7 @@ import teamRouter from './Routers/teamRouter.js';
 import StatusRoute from './Routers/StatusRoute.js'
 import WeightValuationRoute from './Routers/WeightValuationRoute.js'
 import BreedingRoute from './Routers/BreedingRoute.js'
+import VaccinationRoute from './Routers/VaccinationRoute.js'
 
 
 
@@ -50,6 +51,7 @@ app.use('/team/api', teamRouter)
 app.use('/status/api', StatusRoute);
 app.use('/weight/api', WeightValuationRoute);
 app.use('/breeding/api', BreedingRoute);
+app.use('/vaccination/api', VaccinationRoute);
 
 // ─── 404 Handler ───────────────────────────────────────────────────
 app.use((req, res) => {

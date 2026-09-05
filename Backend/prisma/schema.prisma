@@ -95,6 +95,10 @@ model Farms {
   animalStatus      AnimalStatus[]
   pregnancies Pregnancy[]
 
+  vaccinationTypes          VaccinationType[]
+  vaccinationScheduleRules  VaccinationScheduleRule[]
+  animalVaccinations        AnimalVaccination[]
+
   @@map("farms")
 }
 
@@ -168,6 +172,8 @@ model AnimalType {
 
   breeds     Breed[]
   animals    Animal[]
+
+  vaccinationScheduleRules VaccinationScheduleRule[]
 
   @@unique([farm_id, code])
   @@map("animal_types")
@@ -256,6 +262,7 @@ model Animal {
   pregnancyDams   Pregnancy[] @relation("PregnancyDam")
   pregnancySires  Pregnancy[] @relation("PregnancySire")
   birthKids       BirthKid[]
+  vaccinations    AnimalVaccination[]
 
   @@unique([farm_id, tag_number]) // tag numbers are unique per farm, not globally
   @@map("animals")
@@ -478,4 +485,90 @@ model BirthKid {
   deletedby       Int?
 
   @@map("birth_kids")
+}
+
+// ── Module 5: Vaccination & Immunization Management ────────────
+
+model VaccinationType {
+  id          Int       @id @default(autoincrement())
+  farm_id     Int
+  farm        Farms     @relation(fields: [farm_id], references: [id])
+
+  code        String
+  name        String
+  description String?
+  is_active   Boolean   @default(true)
+
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+  createdby   Int?
+  updatedby   Int?
+  deletedby   Int?
+
+  scheduleRules      VaccinationScheduleRule[]
+  animalVaccinations AnimalVaccination[]
+
+  @@unique([farm_id, code])
+  @@map("vaccination_types")
+}
+
+model VaccinationScheduleRule {
+  id                  Int             @id @default(autoincrement())
+  farm_id             Int
+  farm                Farms           @relation(fields: [farm_id], references: [id])
+
+  vaccination_type_id Int
+  vaccinationType     VaccinationType @relation(fields: [vaccination_type_id], references: [id])
+
+  animal_type_id      Int
+  animalType          AnimalType      @relation(fields: [animal_type_id], references: [id])
+
+  dose_number         Int             // which dose in the series (1, 2, 3…)
+  age_days            Int             // age (days) at which this dose is due
+  notes               String?
+
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+  deleted_at          DateTime?
+  createdby           Int?
+  updatedby           Int?
+  deletedby           Int?
+
+  @@unique([farm_id, vaccination_type_id, animal_type_id, dose_number])
+  @@index([animal_type_id])
+  @@map("vaccination_schedule_rules")
+}
+
+model AnimalVaccination {
+  id                  Int             @id @default(autoincrement())
+  farm_id             Int
+  farm                Farms           @relation(fields: [farm_id], references: [id])
+
+  animal_id           Int
+  animal              Animal          @relation(fields: [animal_id], references: [id])
+
+  vaccination_type_id Int
+  vaccinationType     VaccinationType @relation(fields: [vaccination_type_id], references: [id])
+
+  category            String          @default("NORMAL") // NORMAL | SEASONAL
+
+  administered_date   DateTime        @default(now())
+  dose_number         Int?            // which dose in the series this record represents
+  batch_number        String?         // used for batch/recall tracking
+  administered_by     String?
+  cost                Decimal?        @db.Decimal(12, 2)
+  next_due_date       DateTime?       // due date entered by the user on the record
+  notes               String?
+
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+  deleted_at          DateTime?
+  createdby           Int?
+  updatedby           Int?
+  deletedby           Int?
+
+  @@index([animal_id, administered_date])
+  @@index([vaccination_type_id, batch_number])
+  @@map("animal_vaccinations")
 }

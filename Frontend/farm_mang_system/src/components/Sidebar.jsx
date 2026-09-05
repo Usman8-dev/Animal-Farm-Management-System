@@ -10,6 +10,7 @@ import {
   Database,
   Scale,
   Dna,
+  Syringe,
   LogOut,
   X,
   ChevronDown,
@@ -51,6 +52,12 @@ function Sidebar({ mobileOpen, onClose }) {
         label: "Breeding",
         to: "/breeding",
         icon: Dna,
+        roles: ["owner", "manager", "worker"],
+      },
+      {
+        label: "Vaccination",
+        to: "/vaccination",
+        icon: Syringe,
         roles: ["owner", "manager", "worker"],
       },
       {

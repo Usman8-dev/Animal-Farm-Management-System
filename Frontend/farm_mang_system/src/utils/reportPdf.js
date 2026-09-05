@@ -434,3 +434,158 @@ export function generateMaturityAlertsPdf({ data, generatedBy = "" }) {
   finalize(doc, "maturity-alerts.pdf");
 }
 
+// Report 8: Vaccination — compliance -----------------------------------------
+
+export function generateVaccinationCompliancePdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Vaccination Compliance"
+  );
+
+  const d = data || {};
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 42) / 2;
+  drawStatCard(doc, 14, 56, cardW, 36, "Compliance rate", `${d.rate ?? 0}%`);
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 36, "Up to date", `${d.up_to_date ?? 0}/${d.scheduled_animals ?? 0}`);
+
+  const rows = d.breakdown || [];
+  if (rows.length) {
+    themedTable(doc, {
+      startY: 104,
+      head: [["Tag", "Completed", "Required", "Status"]],
+      body: rows.map((b) => [
+        b.tag_number || "—",
+        b.completed_doses ?? 0,
+        b.required_doses ?? 0,
+        b.up_to_date ? "Up to date" : "Behind",
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No animals have a configured vaccination schedule.", 14, 104);
+  }
+
+  finalize(doc, "vaccination-compliance.pdf");
+}
+
+// Report 9: Vaccination — cost ----------------------------------------------
+
+export function generateVaccinationCostPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Vaccination Cost"
+  );
+
+  const d = data || {};
+  const total = Number(d.total_cost ?? 0);
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = pageW - 28;
+  drawStatCard(doc, 14, 56, cardW, 32, "Total spend", money(total));
+
+  const records = d.records || [];
+  if (records.length) {
+    themedTable(doc, {
+      startY: 100,
+      head: [["Tag", "Name", "Vaccine", "Batch", "Date", "Cost"]],
+      body: records.map((r) => [
+        r.tag_number || "—",
+        r.name || "—",
+        r.vaccine || "—",
+        r.batch_number || "—",
+        dateStr(r.administered_date),
+        money(r.cost),
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No vaccination costs recorded.", 14, 100);
+  }
+
+  finalize(doc, "vaccination-cost.pdf");
+}
+
+// Report 10: Vaccination — due / overdue doses -------------------------------
+
+export function generateVaccinationDuePdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Vaccinations Due"
+  );
+
+  const rows = data || [];
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = pageW - 28;
+  drawStatCard(doc, 14, 56, cardW, 32, "Doses due in window", `${rows.length}`);
+
+  if (rows.length) {
+    themedTable(doc, {
+      startY: 100,
+      head: [["Tag", "Name", "Vaccine", "Dose", "Due date", "Days"]],
+      body: rows.map((m) => [
+        m.tag_number || "—",
+        m.name || "—",
+        m.vaccine || "—",
+        m.dose_number ?? 0,
+        dateStr(m.due_date),
+        m.days_from_now === undefined ? "—" : `${m.days_from_now < 0 ? "overdue" : `${m.days_from_now} day${m.days_from_now === 1 ? "" : "s"}`}`,
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No vaccinations are due in this window.", 14, 100);
+  }
+
+  finalize(doc, "vaccination-due.pdf");
+}
+
+// Report 11: Vaccination — seasonal doses -------------------------------------
+
+export function generateVaccinationSeasonalPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Seasonal Vaccinations"
+  );
+
+  const d = data || {};
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 28) / 2;
+  drawStatCard(doc, 14, 56, cardW, 32, "Seasonal doses", `${d.total ?? 0}`);
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 32, "Animals covered", `${d.unique_animals ?? 0}`);
+
+  const rows = d.doses || [];
+  if (rows.length) {
+    themedTable(doc, {
+      startY: 100,
+      head: [["Tag", "Name", "Vaccine", "Date", "Next due", "Batch"]],
+      body: rows.map((r) => [
+        r.tag_number || "—",
+        r.name || "—",
+        r.vaccine || "—",
+        dateStr(r.administered_date),
+        r.next_due_date ? dateStr(r.next_due_date) : "—",
+        r.batch_number || "—",
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No seasonal vaccinations recorded.", 14, 100);
+  }
+
+  finalize(doc, "vaccination-seasonal.pdf");
+}

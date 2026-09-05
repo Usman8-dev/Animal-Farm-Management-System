@@ -61,6 +61,7 @@ import AnimalStatusesTab from "./Pages/Lifecycle/Animalstatusestab";
 import ChangeStatusDialog from "./Pages/Lifecycle/Changestatusdialog";
 import WeightValuationPage from "./Pages/Weight/WeightValuationPage";
 import BreedingPage from "./Pages/Breeding/BreedingPage";
+import VaccinationPage from "./Pages/Vaccination/VaccinationPage";
 function App() {
   return (
     <div>
@@ -100,6 +101,9 @@ function App() {
 
                     {/* Module 4 — Breeding & Reproduction */}
                     <Route path="/breeding" element={<BreedingPage />} />
+
+                    {/* Module 5 — Vaccination & Immunization */}
+                    <Route path="/vaccination" element={<VaccinationPage />} />
               </Route>
             </Routes>
           </ToastProvider>
