@@ -75,6 +75,8 @@ function VaccinationPage() {
   const [records, setRecords] = useState([]);
   const [dosesDue, setDosesDue] = useState([]);
   const [seasonal, setSeasonal] = useState(null);
+  const [seasonalDue, setSeasonalDue] = useState([]);
+  const [normalDue, setNormalDue] = useState([]);
   const [costData, setCostData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState({});
@@ -117,6 +119,8 @@ function VaccinationPage() {
   const loadReports = useCallback(async () => {
     const tasks = [
       { key: "due", url: "/vaccination/api/doses-due", set: setDosesDue, def: [] },
+      { key: "normalDue", url: "/vaccination/api/doses-due?days=30&category=NORMAL", set: setNormalDue, def: [] },
+      { key: "seasonalDue", url: "/vaccination/api/doses-due?days=15&category=SEASONAL", set: setSeasonalDue, def: [] },
       { key: "seasonal", url: "/vaccination/api/reports/vaccination/seasonal", set: setSeasonal, def: null },
       { key: "cost", url: "/vaccination/api/reports/vaccination/cost", set: setCostData, def: null },
     ];
@@ -339,8 +343,8 @@ return (
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Seasonal vaccinations</p>
-              <p className="mt-1 text-2xl font-bold" style={{ color: "var(--primary)" }}>{seasonal?.summary?.seasonal ?? 0}</p>
-              <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{seasonal?.summary?.pct ?? 0}% of {seasonal?.summary?.total ?? 0} total doses</p>
+              <p className="mt-1 text-2xl font-bold" style={{ color: seasonalDue.length ? "var(--danger)" : "var(--primary)" }}>{seasonalDue.length}</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>within 15 days</p>
             </div>
             <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
               <CheckCircle2 size={18} style={{ color: "var(--primary)" }} />
@@ -351,8 +355,8 @@ return (
         <div className="rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Doses due</p>
-              <p className="mt-1 text-2xl font-bold" style={{ color: dosesDue.length ? "var(--danger)" : "var(--primary)" }}>{dosesDue.length}</p>
+              <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Normal doses due</p>
+              <p className="mt-1 text-2xl font-bold" style={{ color: normalDue.length ? "var(--danger)" : "var(--primary)" }}>{normalDue.length}</p>
               <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>within 30 days</p>
             </div>
             <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>

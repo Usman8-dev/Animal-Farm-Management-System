@@ -332,20 +332,25 @@ async function softDeleteVaccination({ farmId, vaccId, personId }) {
 }
 // ── Scheduling (due / overdue) ───────────────────────────────
 
-async function dosesDue({ farmId, days = 30 }) {
+async function dosesDue({ farmId, days = 30, category }) {
   const now = new Date();
   const DAY = 24 * 60 * 60 * 1000;
   const windowEnd = new Date(now.getTime() + Number(days) * DAY);
 
   // Due/overdue is driven by the due date the user entered on each
   // vaccination record (next_due_date) — no automatic calculation.
+  const where = {
+    farm_id: farmId,
+    deleted_at: null,
+    next_due_date: { not: null, lte: windowEnd },
+    animal: { deleted_at: null },
+  };
+  if (category) {
+    const cat = String(category).trim().toUpperCase();
+    if (cat === 'NORMAL' || cat === 'SEASONAL') where.category = cat;
+  }
   const records = await prisma.animalVaccination.findMany({
-    where: {
-      farm_id: farmId,
-      deleted_at: null,
-      next_due_date: { not: null, lte: windowEnd },
-      animal: { deleted_at: null },
-    },
+    where,
     include: {
       animal: {
         select: {
@@ -371,6 +376,7 @@ async function dosesDue({ farmId, days = 30 }) {
       animal_type: r.animal.animalType?.name,
       vaccination_type_id: r.vaccination_type_id,
       vaccine: r.vaccinationType.name,
+      category: r.category,
       dose_number: r.dose_number,
       due_date: new Date(due),
       days_from_now: Math.ceil((due - now.valueOf()) / DAY),

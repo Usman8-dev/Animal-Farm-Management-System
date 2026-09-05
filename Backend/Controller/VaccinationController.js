@@ -251,7 +251,7 @@ const DeleteVaccination = async (req, res) => {
 const GetDosesDue = async (req, res) => {
   try {
     const days = req.query.days ? Number(req.query.days) : 30;
-    const data = await VaccinationService.dosesDue({ farmId: req.user.farmId, days });
+    const data = await VaccinationService.dosesDue({ farmId: req.user.farmId, days, category: req.query.category });
     return res.status(200).json({ success: true, data });
   } catch (err) {
     if (err instanceof AppError) return res.status(err.statusCode).json({ success: false, message: err.message });
