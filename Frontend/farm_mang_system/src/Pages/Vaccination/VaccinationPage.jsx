@@ -53,8 +53,10 @@ const pageStyles = `
   .p-datepicker table th, .p-datepicker table td span { color: var(--text) !important; }
   .p-datepicker table td > span.p-highlight { background: var(--primary) !important; color: #fff !important; }
   .p-tabview .p-tabview-nav { background: transparent !important; border-color: var(--border) !important; }
+  .p-tabview .p-tabview-nav li .p-tabview-nav-link { background: transparent !important; border-color: var(--border) !important; color: var(--text-muted) !important; }
+  .p-tabview .p-tabview-nav li:not(.p-highlight) .p-tabview-nav-link:hover { background: var(--bg-muted) !important; color: var(--text) !important; }
   .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link { background: var(--bg-card) !important; border-color: var(--primary) !important; color: var(--primary) !important; }
-  .p-tabview .p-tabview-nav li .p-tabview-nav-link { color: var(--text-muted) !important; }
+  .p-tabview .p-tabview-panels { background: var(--bg-card) !important; border: 1px solid var(--border) !important; border-top: none !important; color: var(--text) !important; }
   .p-inputtext, .p-dropdown { background: var(--bg-card) !important; border: 1px solid var(--border) !important; color: var(--text) !important; }
 `;
 
