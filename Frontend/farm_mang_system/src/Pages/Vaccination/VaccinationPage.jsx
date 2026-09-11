@@ -413,7 +413,7 @@ return (
         <TabPanel header="Due / Overdue">
           <div className="mb-3">
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Doses due or overdue within the next 30 days, based on the due date you enter on each vaccination record.
+              Doses due or overdue within the next 15 or 30 days, based on the due date you enter on each vaccination record.
             </p>
           </div>
           <DataTable value={dosesDue} globalFilter={dueFilter} globalFilterFields={["tag_number", "name", "vaccine", "animal_type"]}
