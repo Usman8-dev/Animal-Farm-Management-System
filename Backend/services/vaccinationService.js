@@ -213,6 +213,7 @@ async function softDeleteScheduleRule({ farmId, ruleId, personId }) {
 async function createVaccination({
   farmId,
   animalId,
+  animalTypeId,
   vaccinationTypeId,
   category,
   administeredDate,
@@ -224,7 +225,6 @@ async function createVaccination({
   notes,
   personId,
 }) {
-  const animal = await assertAnimalOnFarm(animalId, farmId);
   const type = await assertVaccinationTypeOnFarm(vaccinationTypeId, farmId);
 
   const cat = String(category || 'NORMAL').trim().toUpperCase();
@@ -240,7 +240,51 @@ async function createVaccination({
     if (Number.isNaN(dueDate.getTime())) throw new AppError('Invalid due date', 422);
   }
 
+  // ── Bulk mode: record the dose for EVERY animal of the given type ──
+  if (animalTypeId) {
+    const animalType = await prisma.animalType.findFirst({
+      where: { id: Number(animalTypeId), farm_id: farmId, deleted_at: null },
+    });
+    if (!animalType) throw new AppError('Animal type not found', 404);
+
+    const animals = await prisma.animal.findMany({
+      where: { farm_id: farmId, animal_type_id: Number(animalTypeId), deleted_at: null },
+      select: { id: true },
+      orderBy: { tag_number: 'asc' },
+    });
+    if (!animals.length) {
+      throw new AppError(`No animals found for type "${animalType.name}" on this farm`, 404);
+    }
+
+    const baseData = {
+      farm_id: farmId,
+      vaccination_type_id: vaccinationTypeId,
+      category: cat,
+      administered_date: date,
+      dose_number: doseNumber ? Number(doseNumber) : null,
+      batch_number: batchNumber || null,
+      administered_by: administeredBy || null,
+      cost: cost !== undefined && cost !== null && cost !== '' ? Number(cost) : null,
+      next_due_date: dueDate,
+      notes: notes || null,
+      createdby: personId,
+    };
+
+    const records = await prisma.$transaction(
+      animals.map((a) =>
+        prisma.animalVaccination.create({ data: { ...baseData, animal_id: a.id } })
+      )
+    );
+
+    return { bulk: true, count: records.length, records };
+  }
+
+  // ── Single-animal mode ──
+  if (!animalId) throw new AppError('Either an animal or an animal type must be selected', 422);
+  const animal = await assertAnimalOnFarm(animalId, farmId);
+
   return {
+    bulk: false,
     record: await prisma.animalVaccination.create({
       data: {
         farm_id: farmId,

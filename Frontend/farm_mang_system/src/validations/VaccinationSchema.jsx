@@ -10,7 +10,8 @@ export const VaccinationTypeSchema = yup.object({
 });
 
 export const VaccinationSchema = yup.object({
-  animal_id: yup.number().typeError("Select an animal").required("Select an animal"),
+  animal_type_id: yup.number().nullable().positive("Select a type"),
+  animal_id: yup.number().nullable().typeError("Select an animal"),
   vaccination_type_id: yup.number().typeError("Select a vaccine").required("Select a vaccine"),
   category: yup.string().oneOf(["NORMAL", "SEASONAL"], "Invalid category").default("NORMAL"),
   administered_date: yup.date().nullable().required("Administered date is required"),
@@ -20,4 +21,8 @@ export const VaccinationSchema = yup.object({
   administered_by: txt(120),
   cost: yup.number().nullable().min(0, "Cost cannot be negative"),
   notes: txt(500),
-});
+}).test(
+  "animal-or-type",
+  "Select an animal or an animal type",
+  (v) => !!v.animal_id || !!v.animal_type_id
+);

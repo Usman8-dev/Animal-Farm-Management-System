@@ -182,10 +182,11 @@ const ListAnimalVaccinations = async (req, res) => {
 
 const CreateVaccination = async (req, res) => {
   try {
-    const { animal_id, vaccination_type_id, category, administered_date, next_due_date, dose_number, batch_number, administered_by, cost, notes } = req.body;
+    const { animal_id, animal_type_id, vaccination_type_id, category, administered_date, next_due_date, dose_number, batch_number, administered_by, cost, notes } = req.body;
     const data = await VaccinationService.createVaccination({
       farmId: req.user.farmId,
-      animalId: Number(animal_id),
+      animalId: animal_id ? Number(animal_id) : null,
+      animalTypeId: animal_type_id ? Number(animal_type_id) : null,
       vaccinationTypeId: Number(vaccination_type_id),
       category,
       administeredDate: administered_date || null,

@@ -73,6 +73,7 @@ function VaccinationPage() {
   const canManage = ["owner", "manager"].includes(user?.role);
 
   const [animals, setAnimals] = useState([]);
+  const [animalTypes, setAnimalTypes] = useState([]);
   const [vaccinationTypes, setVaccinationTypes] = useState([]);
   const [records, setRecords] = useState([]);
   const [dosesDue, setDosesDue] = useState([]);
@@ -95,12 +96,14 @@ function VaccinationPage() {
 
   const loadReferences = useCallback(async () => {
     try {
-      const [a, vt] = await Promise.all([
+      const [a, vt, at] = await Promise.all([
         api.get("/animal/api/animals"),
         api.get("/vaccination/api/vaccination-types"),
+        api.get("/animal/api/animal-types"),
       ]);
       setAnimals(a.data.data || []);
       setVaccinationTypes(vt.data.data || []);
+      setAnimalTypes(at.data.data || []);
     } catch (err) {
       showToast({ severity: "error", summary: "Failed to load", detail: err.response?.data?.message || "Could not load reference data" });
     }
@@ -477,7 +480,7 @@ return (
 
       <ConfirmDialog />
 
-      <VaccinationDialog open={recordOpen} onHide={() => { setEditingRecord(null); setRecordOpen(false); }} saving={saving} editing={editingRecord} animals={animals} vaccinationTypes={vaccinationTypes} onSubmitForm={handleRecord} />
+      <VaccinationDialog open={recordOpen} onHide={() => { setEditingRecord(null); setRecordOpen(false); }} saving={saving} editing={editingRecord} animals={animals} animalTypes={animalTypes} vaccinationTypes={vaccinationTypes} onSubmitForm={handleRecord} />
       <VaccinationTypeDialog open={typeOpen} onHide={() => setTypeOpen(false)} saving={saving} editing={typeEditing} onSubmitForm={handleTypeSubmit} />
     </>
   );

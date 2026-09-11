@@ -89,10 +89,11 @@ export function VaccinationTypeDialog({ open, onHide, saving, editing, onSubmitF
     </Dialog>
   );
 }
-export function VaccinationDialog({ open, onHide, saving, editing, animals, vaccinationTypes, onSubmitForm }) {
-  const { control, register, handleSubmit, reset, formState: { errors } } = useForm({
+export function VaccinationDialog({ open, onHide, saving, editing, animals, animalTypes, vaccinationTypes, onSubmitForm }) {
+  const { control, register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     resolver: yupResolver(VaccinationSchema),
     defaultValues: {
+      animal_type_id: null,
       animal_id: null,
       vaccination_type_id: null,
       category: "NORMAL",
@@ -106,11 +107,14 @@ export function VaccinationDialog({ open, onHide, saving, editing, animals, vacc
     },
   });
 
+  const selectedTypeId = watch("animal_type_id");
+
   useEffect(() => {
     if (!open) return;
     reset(
       editing
         ? {
+            animal_type_id: null, // edit mode is always single-animal
             animal_id: editing.animal_id,
             vaccination_type_id: editing.vaccination_type_id,
             category: editing.category || "NORMAL",
@@ -123,6 +127,7 @@ export function VaccinationDialog({ open, onHide, saving, editing, animals, vacc
             notes: editing.notes || "",
           }
         : {
+            animal_type_id: null,
             animal_id: null,
             vaccination_type_id: null,
             category: "NORMAL",
@@ -139,6 +144,8 @@ export function VaccinationDialog({ open, onHide, saving, editing, animals, vacc
 
   const animalOptions = animals.map((a) => ({ id: a.id, label: animalLabel(a) }));
   const typeOptions = vaccinationTypes.map((t) => ({ id: t.id, label: t.name }));
+  const animalTypeOptions = animalTypes.map((t) => ({ id: t.id, label: t.name }));
+  const isBulkMode = !editing && !!selectedTypeId;
 
   return (
     <Dialog header={editing ? "Edit Vaccination" : "Record Vaccination"} visible={open} onHide={onHide} style={{ width: "32rem" }} className="vac-dialog">
@@ -147,6 +154,7 @@ export function VaccinationDialog({ open, onHide, saving, editing, animals, vacc
         onSubmit={handleSubmit((d) =>
           onSubmitForm({
             animal_id: d.animal_id,
+            animal_type_id: d.animal_type_id || null,
             vaccination_type_id: d.vaccination_type_id,
             category: d.category || "NORMAL",
             administered_date: d.administered_date,
@@ -161,11 +169,48 @@ export function VaccinationDialog({ open, onHide, saving, editing, animals, vacc
         className="flex flex-col gap-4 pt-2"
       >
         <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Animal <span style={{ color: "var(--danger)" }}>*</span></label>
-          <Controller name="animal_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={animalOptions} optionLabel="label" optionValue="id" placeholder="Select animal" filter showClear className="w-full" />
+          <label className="text-[0.8rem] font-semibold">Animal type (bulk)</label>
+          <Controller name="animal_type_id" control={control} render={({ field }) => (
+            <Dropdown
+              value={field.value}
+              onChange={(e) => field.onChange(e.value)}
+              options={animalTypeOptions}
+              optionLabel="label"
+              optionValue="id"
+              placeholder="Select animal type (records for ALL animals of this type)"
+              filter
+              showClear
+              disabled={!!editing}
+              className="w-full"
+            />
           )} />
-          {errors.animal_id && <p className="err text-xs">{errors.animal_id.message}</p>}
+          {selectedTypeId && !editing && (
+            <small className="text-xs" style={{ color: "var(--primary)" }}>
+              Bulk mode — one dose will be recorded for every animal of this type.
+            </small>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[0.8rem] font-semibold">
+            Animal {isBulkMode && <span style={{ color: "var(--text-muted)" }}>(disabled in bulk mode)</span>}
+            {!isBulkMode && !editing && <span style={{ color: "var(--danger)" }}> *</span>}
+          </label>
+          <Controller name="animal_id" control={control} render={({ field }) => (
+            <Dropdown
+              value={field.value}
+              onChange={(e) => field.onChange(e.value)}
+              options={animalOptions}
+              optionLabel="label"
+              optionValue="id"
+              placeholder={isBulkMode ? "Disabled — animal type selected" : "Select animal"}
+              filter
+              showClear={!isBulkMode}
+              disabled={isBulkMode}
+              className={`w-full ${isBulkMode ? "opacity-60" : ""}`}
+            />
+          )} />
+          {errors.animal_id && !isBulkMode && <p className="err text-xs">{errors.animal_id.message}</p>}
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Vaccine <span style={{ color: "var(--danger)" }}>*</span></label>
