@@ -173,7 +173,7 @@ const handleRecord = async (payload) => {
       setRecordOpen(false);
       await refreshAll();
     } catch (err) {
-      showToast({ severity: "error", summary: "Save failed", detail: err.response?.data?.message || "Something went wrong" });
+      showToast({ severity: "error", summary: "Save failed", detail: err.response?.data?.message || (err.response?.data?.errors || []).join(", ") || "Something went wrong" });
     } finally {
       setSaving(false);
     }

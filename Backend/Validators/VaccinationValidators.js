@@ -54,7 +54,7 @@ const CreateVaccinationValidator = [
 
 const UpdateVaccinationValidator = [
   body('animal_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('animal_id must be a valid id'),
-  body('animal_type_id').optional().isInt({ min: 1 }).withMessage('animal_type_id must be valid'),
+  body('animal_type_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('animal_type_id must be valid'),
   body('vaccination_type_id').optional().isInt({ min: 1 }).withMessage('vaccination_type_id must be valid'),
   body('category').optional({ nullable: true }).isIn(['NORMAL', 'SEASONAL']).withMessage('category must be NORMAL or SEASONAL'),
   body('administered_date').optional({ nullable: true }).isISO8601().withMessage('administered_date must be a valid date'),
