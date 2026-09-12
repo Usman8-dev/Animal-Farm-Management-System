@@ -653,7 +653,6 @@ import { Link } from "react-router-dom";
 import {
   PawPrint,
   Users,
-  Layers,
   GitBranch,
   TrendingUp,
   Activity,
@@ -663,8 +662,10 @@ import {
   Sparkles,
   Scale,
   ChevronRight,
-  Settings,
   UserPlus,
+  HeartPulse,
+  Syringe,
+  CalendarClock,
 } from "lucide-react";
 import api from "../../apis/axios";
 import { useAuth } from "../../context/AuthContext";
@@ -839,57 +840,7 @@ function SectionCard({ title, icon: Icon, children, action }) {
 }
 
 /* ── Live module tile ────────────────────────────────────────────────── */
-function LiveModule({ title, description, to, icon: Icon }) {
-  return (
-    <Link
-      to={to}
-      className="group relative flex flex-col overflow-hidden rounded-xl border p-4 text-left no-underline transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-      style={{
-        backgroundColor: "var(--bg-card)",
-        borderColor: "var(--border)",
-      }}
-    >
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] scale-x-0 transition-transform duration-300 group-hover:scale-x-100"
-        style={{ backgroundColor: "var(--primary)" }}
-      />
-      <div className="mb-2 flex items-center justify-between">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105"
-          style={{
-            background:
-              "linear-gradient(135deg, color-mix(in srgb, var(--primary) 20%, transparent), color-mix(in srgb, var(--primary) 8%, transparent))",
-            color: "var(--primary)",
-          }}
-        >
-          {Icon ? <Icon size={16} strokeWidth={2.1} /> : <Sparkles size={16} />}
-        </span>
-        <span
-          className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
-          style={{
-            backgroundColor: "color-mix(in srgb, #10b981 15%, transparent)",
-            color: "#10b981",
-          }}
-        >
-          Live
-        </span>
-      </div>
-      <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-        {title}
-      </p>
-      <p className="mt-1 line-clamp-2 text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-        {description}
-      </p>
-      <span
-        className="mt-3 inline-flex items-center gap-1 text-xs font-semibold"
-        style={{ color: "var(--primary)" }}
-      >
-        Open
-        <ArrowRight size={12} className="transition-transform duration-300 group-hover:translate-x-1" />
-      </span>
-    </Link>
-  );
-}
+
 
 /* ── Coming soon tile ─────────────────────────────────────────────────── */
 function ComingSoonModule({ title, description }) {
@@ -986,6 +937,15 @@ function Dashboard() {
   const [breeds, setBreeds] = useState([]);
   const [genders, setGenders] = useState([]);
   const [herdValue, setHerdValue] = useState(null);
+  const [pregnancies, setPregnancies] = useState([]);
+  const [upcomingDeliveries, setUpcomingDeliveries] = useState([]);
+  const [breedingSuccess, setBreedingSuccess] = useState(null);
+  const [birthStats, setBirthStats] = useState(null);
+  const [maturityList, setMaturityList] = useState([]);
+  const [vaccinationRecords, setVaccinationRecords] = useState([]);
+  const [normalDue, setNormalDue] = useState([]);
+  const [seasonalDue, setSeasonalDue] = useState([]);
+  const [vaccineCost, setVaccineCost] = useState(null);
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -1000,6 +960,15 @@ function Dashboard() {
         ...requests,
         api.get("/team/api/team"),
         api.get("/weight/api/reports/herd-overview"),
+        api.get("/breeding/api/pregnancies"),
+        api.get("/breeding/api/reports/breeding/upcoming-deliveries"),
+        api.get("/breeding/api/reports/breeding/success-rate"),
+        api.get("/breeding/api/reports/breeding/birth-outcomes"),
+        api.get("/breeding/api/reports/breeding/maturity-alerts"),
+        api.get("/vaccination/api/vaccinations"),
+        api.get("/vaccination/api/doses-due?days=30&category=NORMAL"),
+        api.get("/vaccination/api/doses-due?days=15&category=SEASONAL"),
+        api.get("/vaccination/api/reports/vaccination/cost"),
       ]);
 
       if (results[0].status === "fulfilled") setAnimals(results[0].value.data.data || []);
@@ -1011,6 +980,15 @@ function Dashboard() {
         const d = results[5].value.data.data;
         setHerdValue({ total: d?.totalHerdValue ?? 0, count: d?.valuedAnimals ?? 0 });
       }
+      if (results[6].status === "fulfilled") setPregnancies(results[6].value.data.data || []);
+      if (results[7].status === "fulfilled") setUpcomingDeliveries(results[7].value.data.data || []);
+      if (results[8].status === "fulfilled") setBreedingSuccess(results[8].value.data.data);
+      if (results[9].status === "fulfilled") setBirthStats(results[9].value.data.data);
+      if (results[10].status === "fulfilled") setMaturityList(results[10].value.data.data || []);
+      if (results[11].status === "fulfilled") setVaccinationRecords(results[11].value.data.data || []);
+      if (results[12].status === "fulfilled") setNormalDue(results[12].value.data.data || []);
+      if (results[13].status === "fulfilled") setSeasonalDue(results[13].value.data.data || []);
+      if (results[14].status === "fulfilled") setVaccineCost(results[14].value.data.data);
     } catch (err) {
       showToast({
         severity: "error",
@@ -1082,8 +1060,19 @@ function Dashboard() {
       opsScore,
       activeTypes: types.filter((t) => t.is_active !== false).length,
       activeBreeds: breeds.filter((b) => b.is_active !== false).length,
+      activePregnancies: pregnancies.filter((p) => !p.outcome).length,
+      confirmedPregnancies: pregnancies.filter((p) => p.is_confirmed || p.outcome !== null).length,
+      liveBirths: breedingSuccess?.live_births ?? 0,
+      births: birthStats?.births ?? 0,
+      kidsBorn: birthStats?.total_kids ?? 0,
+      readyToBreed: maturityList?.length ?? 0,
+      upcomingCount: upcomingDeliveries?.length ?? 0,
+      dosesRecorded: vaccinationRecords?.length ?? 0,
+      dosesDueCount: (normalDue?.length ?? 0) + (seasonalDue?.length ?? 0),
+      seasonalDueCount: seasonalDue?.length ?? 0,
+      vaccineCostTotal: vaccineCost?.total_cost ?? 0,
     };
-  }, [animals, team, types, breeds, genders]);
+  }, [animals, team, types, breeds, genders, pregnancies, breedingSuccess, birthStats, maturityList, upcomingDeliveries, vaccinationRecords, normalDue, seasonalDue, vaccineCost]);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -1131,7 +1120,7 @@ function Dashboard() {
               Farm overview
             </h1>
             <p className="mt-1.5 text-sm" style={{ color: "var(--text-muted)" }}>
-              Herd · Lifecycle · Weight &amp; Valuation — manage it all from one place.
+              Herd · Lifecycle · Weight &amp; Valuation · Breeding · Vaccination — manage it all from one place.
             </p>
           </div>
           <div
@@ -1154,7 +1143,7 @@ function Dashboard() {
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 fade-in-up" style={{ animationDelay: "0.05s" }}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 fade-in-up" style={{ animationDelay: "0.05s" }}>
         <StatCard
           label="Total animals"
           value={metrics.totalAnimals}
@@ -1162,6 +1151,30 @@ function Dashboard() {
           icon={PawPrint}
           accent="var(--primary)"
           to="/animals"
+        />
+        <StatCard
+          label="Herd value"
+          value={herdValue ? `Rs. ${formatNumber(herdValue.total)}` : "—"}
+          sub={herdValue ? `${herdValue.count} animals valued` : "Loading…"}
+          icon={Scale}
+          accent="#0ea5e9"
+          to="/weight"
+        />
+        <StatCard
+          label="Active pregnancies"
+          value={metrics.activePregnancies}
+          sub={`${metrics.upcomingCount} deliveries due in 30 days · ${metrics.readyToBreed} ready to breed`}
+          icon={HeartPulse}
+          accent="#e11d48"
+          to="/breeding"
+        />
+        <StatCard
+          label="Doses recorded"
+          value={metrics.dosesRecorded}
+          sub={`${metrics.dosesDueCount} doses due (${metrics.seasonalDueCount} seasonal)`}
+          icon={Syringe}
+          accent="#0ea5e9"
+          to="/vaccination"
         />
         <StatCard
           label="Team"
@@ -1172,27 +1185,11 @@ function Dashboard() {
           to="/team"
         />
         <StatCard
-          label="Animal types"
-          value={metrics.activeTypes}
-          sub={`${metrics.activeBreeds} breeds configured`}
-          icon={Layers}
-          accent="#c9a227"
-          to="/master-data/animal-types"
-        />
-        <StatCard
           label="Ops readiness"
           value={`${metrics.opsScore}%`}
           sub="Data completeness score"
           icon={Activity}
           accent="#10b981"
-        />
-        <StatCard
-          label="Weight & Valuation"
-          value={herdValue ? `Rs. ${formatNumber(herdValue.total)}` : "—"}
-          sub={herdValue ? `${herdValue.count} animals valued` : "Loading…"}
-          icon={Scale}
-          accent="#0ea5e9"
-          to="/weight"
         />
       </div>
 
@@ -1242,6 +1239,97 @@ function Dashboard() {
               />
             </div>
           </SectionCard>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <SectionCard title="Breeding & reproduction" icon={HeartPulse}>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="flex h-11 w-11 items-center justify-center rounded-xl"
+                    style={{
+                      background: "linear-gradient(135deg, color-mix(in srgb, #e11d48 22%, transparent), color-mix(in srgb, #e11d48 8%, transparent))",
+                      color: "#e11d48",
+                    }}
+                  >
+                    <HeartPulse size={19} strokeWidth={2.1} />
+                  </span>
+                  <div>
+                    <p className="font-display text-2xl font-semibold leading-none" style={{ color: "var(--text-heading)" }}>
+                      {metrics.activePregnancies}
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>active pregnancies</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Due in 30d</p>
+                    <p className="mt-0.5 text-xl font-bold" style={{ color: metrics.upcomingCount ? "#e11d48" : "var(--primary)" }}>{metrics.upcomingCount}</p>
+                  </div>
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Live births</p>
+                    <p className="mt-0.5 text-xl font-bold" style={{ color: "var(--primary)" }}>{metrics.liveBirths}</p>
+                  </div>
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Births logged</p>
+                    <p className="mt-0.5 text-xl font-bold" style={{ color: "var(--primary)" }}>{metrics.births}</p>
+                  </div>
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Ready to breed</p>
+                    <p className="mt-0.5 text-xl font-bold" style={{ color: "#c9a227" }}>{metrics.readyToBreed}</p>
+                  </div>
+                </div>
+
+                <Link to="/breeding" className="flex items-center gap-1 text-xs font-semibold" style={{ color: "#e11d48" }}>
+                  Manage breeding <ArrowRight size={12} />
+                </Link>
+              </div>
+            </SectionCard>
+            <SectionCard title="Vaccination status" icon={Syringe}>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="flex h-11 w-11 items-center justify-center rounded-xl"
+                    style={{
+                      background: "linear-gradient(135deg, color-mix(in srgb, #0ea5e9 22%, transparent), color-mix(in srgb, #0ea5e9 8%, transparent))",
+                      color: "#0ea5e9",
+                    }}
+                  >
+                    <Syringe size={19} strokeWidth={2.1} />
+                  </span>
+                  <div>
+                    <p className="font-display text-2xl font-semibold leading-none" style={{ color: "var(--text-heading)" }}>
+                      {metrics.dosesRecorded}
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>doses recorded</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Normal due</p>
+                    <p className="mt-0.5 text-xl font-bold" style={{ color: normalDue.length ? "#c9a227" : "var(--primary)" }}>{normalDue.length}</p>
+                  </div>
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Seasonal due</p>
+                    <p className="mt-0.5 text-xl font-bold" style={{ color: seasonalDue.length ? "#e11d48" : "var(--primary)" }}>{seasonalDue.length}</p>
+                  </div>
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Spend</p>
+                    <p className="mt-0.5 text-base font-bold" style={{ color: "var(--text-heading)" }}>{vaccineCost ? `Rs. ${formatNumber(metrics.vaccineCostTotal)}` : "—"}</p>
+                  </div>
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Due total</p>
+                    <p className="mt-0.5 text-xl font-bold" style={{ color: "var(--primary)" }}>{metrics.dosesDueCount}</p>
+                  </div>
+                </div>
+
+                <Link to="/vaccination" className="flex items-center gap-1 text-xs font-semibold" style={{ color: "#0ea5e9" }}>
+                  Manage vaccinations <ArrowRight size={12} />
+                </Link>
+              </div>
+            </SectionCard>
+          </div>
         </div>
 
         {/* Side column */}
@@ -1272,14 +1360,66 @@ function Dashboard() {
             )}
           </SectionCard>
 
+          <SectionCard title="Upcoming deliveries" icon={CalendarClock}>
+            {upcomingDeliveries.length > 0 ? (
+              <div className="space-y-2.5">
+                {upcomingDeliveries.slice(0, 5).map((d) => {
+                  const days = Math.ceil(
+                    (new Date(d.expected_delivery_date).valueOf() - Date.now()) / 86400000
+                  );
+                  return (
+                    <div
+                      key={d.pregnancy_id}
+                      className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
+                      style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-muted)" }}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
+                          {d.dam?.tag_number || "—"}
+                          {d.dam?.name ? ` · ${d.dam.name}` : ""}
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                          {new Date(d.expected_delivery_date).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold"
+                        style={{
+                          backgroundColor: days < 0 ? "color-mix(in srgb, #e11d48 15%, transparent)" : "color-mix(in srgb, #c9a227 15%, transparent)",
+                          color: days < 0 ? "#e11d48" : "#c9a227",
+                        }}
+                      >
+                        {days < 0 ? `${-days}d overdue` : days === 0 ? "Due today" : `in ${days}d`}
+                      </span>
+                    </div>
+                  );
+                })}
+                <Link to="/breeding" className="flex items-center gap-1 pt-1 text-xs font-semibold" style={{ color: "var(--primary)" }}>
+                  View all pregnancies <ArrowRight size={12} />
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <CalendarClock size={24} style={{ color: "var(--text-muted)", opacity: 0.4 }} />
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  No deliveries expected in the next 30 days.
+                </p>
+              </div>
+            )}
+          </SectionCard>
+
           <SectionCard title="Quick actions" icon={Activity}>
             <div className="flex flex-col gap-1.5">
               {[
                 { to: "/animals", label: "Manage animals", icon: PawPrint },
                 { to: "/weight", label: "Weight & valuation", icon: Scale },
+                { to: "/breeding", label: "Breeding & reproduction", icon: HeartPulse },
+                { to: "/vaccination", label: "Vaccinations", icon: Syringe },
                 { to: "/master-data/animal-status", label: "Animal lifecycle", icon: GitBranch },
                 { to: "/team", label: "Farm team", icon: UserPlus },
-                { to: "/master-data/genders", label: "Master data", icon: Settings },
               ].map((a) => (
                 <Link
                   key={a.to}
@@ -1327,44 +1467,10 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Active modules showcase */}
-      <div className="fade-in-up" style={{ animationDelay: "0.15s" }}>
-        <SectionCard title="Active modules" icon={Activity}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <LiveModule
-              title="Animals"
-              description="Animals, breeds, types, genders, and team management."
-              to="/animals"
-              icon={PawPrint}
-            />
-            <LiveModule
-              title="Lifecycle"
-              description="Animal status tracking and breeding lifecycle."
-              to="/master-data/animal-status"
-              icon={GitBranch}
-            />
-            <LiveModule
-              title="Weight & Valuation"
-              description="Track animal weight history and market valuation."
-              to="/weight"
-              icon={Scale}
-            />
-          </div>
-        </SectionCard>
-      </div>
-
       {/* Future modules */}
       <div className="fade-in-up" style={{ animationDelay: "0.2s" }}>
         <SectionCard title="Coming soon" icon={Sparkles}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ComingSoonModule
-              title="Health & treatments"
-              description="Vaccinations, illness logs, and treatment schedules."
-            />
-            <ComingSoonModule
-              title="Breeding & pregnancies"
-              description="Heat tracking, mating records, expected deliveries."
-            />
             <ComingSoonModule
               title="Feed & inventory"
               description="Stock levels, consumption, and purchase logs."
