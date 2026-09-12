@@ -44,6 +44,8 @@ import { AuthProvider } from "./context/AuthContext";
 import Register from "./Pages/Auth/Register";
 import VerifyEmailNotice from "./Pages/Auth/Verifyemailnotice";
 import Login from "./Pages/Auth/Login";
+import ForgotPassword from "./Pages/Auth/ForgotPassword";
+import ResetPassword from "./Pages/Auth/ResetPassword";
 import Dashboard from "./Pages/Dashboard/Dashboard";
 import ProtectedRoute from "./components/Protectedroute";
 import Layout from "./components/Layout";
@@ -74,6 +76,8 @@ function App() {
               <Route path="/verify-email-notice" element={<VerifyEmailNotice />} />
               <Route path="/" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail/>} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               <Route
                 element={

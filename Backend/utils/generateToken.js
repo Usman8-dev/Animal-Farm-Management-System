@@ -24,4 +24,13 @@ function generateVerificationToken(personId, email) {
   );
 }
 
-export { generateAuthToken, generateVerificationToken };
+// Used once, for password reset — proves the user requested the reset and owns the email
+function generateResetToken(personId, email) {
+  return jwt.sign(
+    { personId, email },
+    process.env.JWT_KEY,
+    { expiresIn: '1h' }
+  );
+}
+
+export { generateAuthToken, generateVerificationToken, generateResetToken };

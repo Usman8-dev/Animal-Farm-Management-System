@@ -2,8 +2,9 @@ import bcrypt from 'bcrypt';
 import prisma from '../prisma/client.js';
 import jwt from 'jsonwebtoken';
 
-import { generateAuthToken, generateVerificationToken } from '../utils/generateToken.js';
+import { generateAuthToken, generateVerificationToken, generateResetToken } from '../utils/generateToken.js';
 import sendVerificationEmail from '../utils/sendVerificationEmail.js';
+import sendResetPasswordEmail from '../utils/sendResetPasswordEmail.js';
 
 const RegisterOwner = async (req, res) => {
   try {
@@ -143,6 +144,85 @@ const VerifyEmail = async (req, res) => {
   }
 };
 
+// ForgotPassword — sends a password-reset link to the user's email
+
+const ForgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const credentials = await prisma.person_Credentials.findFirst({
+      where: { email, deleted_at: null },
+    });
+
+    // Always respond with the same message to avoid revealing which accounts exist.
+    const genericMessage = 'If an account exists for that email, a password reset link has been sent.';
+
+    if (!credentials) {
+      return res.status(200).json({ success: true, message: genericMessage });
+    }
+
+    const resetToken = generateResetToken(credentials.person_id, credentials.email);
+
+    try {
+      await sendResetPasswordEmail(credentials.email, resetToken);
+    } catch (emailErr) {
+      console.error('Failed to send password reset email:', emailErr.message);
+      return res.status(200).json({ success: true, message: genericMessage });
+    }
+
+    return res.status(200).json({ success: true, message: genericMessage });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// ResetPassword — sets a new password for a validated reset token
+
+const ResetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_KEY);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset link is invalid or has expired',
+      });
+    }
+
+    const { personId, email } = decoded;
+
+    const credentials = await prisma.person_Credentials.findUnique({
+      where: { person_id: Number(personId) },
+    });
+
+    if (!credentials || credentials.email !== email || credentials.deleted_at) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset link is invalid or has expired',
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.person_Credentials.update({
+      where: { person_id: credentials.person_id },
+      data: { password: hashedPassword, updatedby: credentials.person_id },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password updated successfully. You can now log in with your new password.',
+    });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 const LoginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -267,4 +347,4 @@ const GetMe = async (req, res) => {
   return res.status(200).json({ success: true, user: req.user });
 };
 
-export { RegisterOwner, VerifyEmail, LoginUser, LogoutUser, GetMe };
+export { RegisterOwner, VerifyEmail, ForgotPassword, ResetPassword, LoginUser, LogoutUser, GetMe };

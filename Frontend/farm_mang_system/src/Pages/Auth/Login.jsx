@@ -191,7 +191,7 @@ function Login() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              {/* <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between">
                 <label className="text-[0.8rem] font-semibold text-[#1b241d]">
                   Password
                 </label>
@@ -201,7 +201,7 @@ function Login() {
                 >
                   Forgot password?
                 </Link>
-              </div> */}
+              </div>
               <div className="relative flex">
                 <InputText
                   type={showPassword ? "text" : "password"}

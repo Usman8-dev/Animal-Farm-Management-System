@@ -46,4 +46,23 @@ const RegisterValidator = [
     .withMessage("CNIC must follow the 12345-1234567-1 format"),
 ];
 
-export {loginValidator, RegisterValidator}
+const forgotPasswordValidator = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Email must be valid"),
+];
+
+const resetPasswordValidator = [
+  body("token")
+    .notEmpty()
+    .withMessage("Reset token is required"),
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters"),
+];
+
+export {loginValidator, RegisterValidator, forgotPasswordValidator, resetPasswordValidator}
