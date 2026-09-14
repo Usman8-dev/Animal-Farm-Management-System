@@ -77,12 +77,12 @@ function Sidebar({ mobileOpen, onClose }) {
         icon: Users,
         roles: ["owner", "manager"],
       },
-      {
-        label: "Farm Settings",
-        to: "/farm-settings",
-        icon: Settings,
-        roles: ["owner"],
-      },
+      // {
+      //   label: "Farm Settings",
+      //   to: "/farm-settings",
+      //   icon: Settings,
+      //   roles: ["owner"],
+      // },
     ],
     [dashboardPath]
   );
