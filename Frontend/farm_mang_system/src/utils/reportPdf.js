@@ -8,6 +8,30 @@ const PRIMARY = [31, 61, 46]; // #1f3d2e
 const ACCENT = [227, 197, 92]; // #e3c55c
 const MUTED = [102, 113, 106];
 
+// Logo (Slogan.png) base64 cache — fetched once, ready long before any
+// download click. Falls back to the plain-text brand if not loaded yet.
+let LOGO_B64 = null;
+const LOGO_ASPECT = 2.993; // 2170 x 725
+if (typeof window !== "undefined") {
+  fetch("/images/Slogan-report.png")
+    .then((r) => (r.ok ? r.blob() : Promise.reject(new Error("logo fetch failed"))))
+    .then(
+      (b) =>
+        new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(b);
+        })
+    )
+    .then((d) => {
+      LOGO_B64 = d;
+    })
+    .catch(() => {
+      /* silent — text fallback stays */
+    });
+}
+
 const money = (n) => {
   const v = Number(n);
   return Number.isNaN(v)
@@ -37,15 +61,27 @@ function drawHeader(doc, title, subtitle) {
   doc.setFillColor(...ACCENT);
   doc.rect(0, 34, pageW, 3, "F");
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(255, 255, 255);
-  doc.text(BRAND, 14, 17);
+  if (LOGO_B64) {
+    // Slogan logo on the left, "Generated ..." on its own line below it.
+    const logoH = 15;
+    const logoW = logoH * LOGO_ASPECT;
+    doc.addImage(LOGO_B64, "PNG", 14, 7, logoW, logoH, undefined, "FAST");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(220, 226, 220);
+    doc.text(title, 14, 29.5);
+  } else {
+    // Text fallback (logo still loading or unavailable)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.text(BRAND, 14, 17);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(220, 226, 220);
-  doc.text(title, 14, 27);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(220, 226, 220);
+    doc.text(title, 14, 27);
+  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
