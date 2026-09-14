@@ -107,7 +107,7 @@ function ResetPassword() {
               password.
             </p>
             <Link
-              to="/"
+              to="/login"
               className="inline-block w-full rounded-lg bg-[#1f3d2e] px-4 py-3 text-sm font-semibold text-white hover:bg-[#3c6650] transition-colors"
             >
               Go to login
@@ -189,7 +189,7 @@ function ResetPassword() {
             </form>
 
             <Link
-              to="/"
+              to="/login"
               className="mt-6 inline-block text-sm font-semibold text-[#1f3d2e] hover:underline"
             >
               Back to login

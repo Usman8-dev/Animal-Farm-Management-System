@@ -80,7 +80,7 @@ function ForgotPassword() {
               folder or try again.
             </p>
             <Link
-              to="/"
+              to="/login"
               className="inline-flex items-center justify-center gap-1.5 w-full rounded-lg bg-[#1f3d2e] px-4 py-3 text-sm font-semibold text-white hover:bg-[#3c6650] transition-colors"
             >
               <ArrowLeft size={15} />
@@ -128,7 +128,7 @@ function ForgotPassword() {
             </form>
 
             <Link
-              to="/"
+              to="/login"
               className="mt-6 inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-[#1f3d2e] hover:underline"
             >
               <ArrowLeft size={15} />
