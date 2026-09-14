@@ -31,12 +31,11 @@ function Navbar({ onMenuClick }) {
           >
             <Menu size={22} />
           </button>
-          <span
-            className="font-display font-semibold text-[1rem] md:hidden"
-            style={{ color: "var(--text-heading)" }}
-          >
-            Herdwell
-          </span>
+          <img
+            src="/images/Slogan.png"
+            alt="Herdwell — Farm Management System"
+            className="h-8 w-auto max-w-[120px] object-contain md:hidden"
+          />
         </div>
 
         <div className="flex items-center gap-3">

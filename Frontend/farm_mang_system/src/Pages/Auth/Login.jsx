@@ -121,9 +121,12 @@ function Login() {
         <div className="brand-pattern pointer-events-none absolute inset-0 opacity-[0.14]" aria-hidden="true" />
 
         <div className="relative z-10 max-w-md">
-          <div className="mb-14 inline-flex items-center gap-2 font-display font-semibold text-[1.15rem] tracking-tight text-[#e3c55c]">
-            <Sprout size={22} strokeWidth={2.2} />
-            <span>Herdwell</span>
+          <div className="mb-14">
+            <img
+              src="/images/Slogan.png"
+              alt="Herdwell — Farm Management System"
+              className="h-14 w-auto max-w-full object-contain drop-shadow-[0_4px_14px_rgba(0,0,0,0.35)]"
+            />
           </div>
 
           <h1 className="font-display font-medium text-[2.35rem] leading-[1.18] tracking-tight text-[#fbf9f1] mb-4">

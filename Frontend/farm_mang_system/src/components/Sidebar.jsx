@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  Sprout,
   LayoutDashboard,
   PawPrint,
   Users,
@@ -109,9 +108,12 @@ function Sidebar({ mobileOpen, onClose }) {
       `}</style>
 
       <div className="flex items-center justify-between px-5 py-5">
-        <div className="flex items-center gap-2 font-display text-[1.05rem] font-semibold text-[#e3c55c]">
-          <Sprout size={20} strokeWidth={2.2} />
-          <span>Herdwell</span>
+        <div className="flex items-center">
+          <img
+            src="/images/Slogan.png"
+            alt="Herdwell — Farm Management System"
+            className="h-11 w-auto max-w-full object-contain"
+          />
         </div>
         <button onClick={onClose} className="text-[#f4f1e6]/70 md:hidden">
           <X size={20} />
