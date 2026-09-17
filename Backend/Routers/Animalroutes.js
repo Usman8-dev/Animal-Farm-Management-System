@@ -11,7 +11,7 @@ import {
   AnimalIdParamValidator,
   AnimalImageValidator,
   GenderValidator,
-} from '../Validators/Animalvalidators .js';
+} from '../Validators/AnimalValidators.js';
 
 import {
   ListAnimalTypes,

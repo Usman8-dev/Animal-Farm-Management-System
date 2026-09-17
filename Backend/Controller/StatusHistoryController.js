@@ -1,5 +1,5 @@
 import prisma from '../prisma/client.js';
-import { StatusService } from '../services/statusService.js';
+import { StatusService } from '../services/StatusService.js';
 
 const { AppError, recordStatusChange } = StatusService;
 
