@@ -13,6 +13,10 @@ router.post('/forgot-password', forgotPasswordValidator, validate, ForgotPasswor
 router.post('/reset-password', resetPasswordValidator, validate, ResetPassword);
 router.post('/logout',  LogoutUser);
 router.get('/me', IsLoginUser, GetMe);
+router.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', message: 'I am Health Alhamdulillah' });
+});
+
 
 
 export default router; 
