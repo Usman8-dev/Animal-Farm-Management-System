@@ -7,11 +7,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 
-
-const app = express();
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // Routers 
 import userRouter from './Routers/userRouter.js';
 import animalRoutes from './Routers/Animalroutes.js'
@@ -21,6 +16,13 @@ import WeightValuationRoute from './Routers/WeightValuationRoute.js'
 import BreedingRoute from './Routers/BreedingRoute.js'
 import VaccinationRoute from './Routers/VaccinationRoute.js'
 
+
+const app = express();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// ─── Grouped Production API Routers ───────────────────────────────
+const apiRouter = express.Router();
 
 
 // ─── Security & Parsing Middleware ───────────────────────────────
@@ -45,13 +47,17 @@ app.use(cors({
 }));
 
 
-app.use('/user', userRouter);
-app.use('/animal/api', animalRoutes);
-app.use('/team/api', teamRouter)
-app.use('/status/api', StatusRoute);
-app.use('/weight/api', WeightValuationRoute);
-app.use('/breeding/api', BreedingRoute);
-app.use('/vaccination/api', VaccinationRoute);
+apiRouter.use('/user', userRouter);
+apiRouter.use('/animal/api', animalRoutes);
+apiRouter.use('/team/api', teamRouter)
+apiRouter.use('/status/api', StatusRoute);
+apiRouter.use('/weight/api', WeightValuationRoute);
+apiRouter.use('/breeding/api', BreedingRoute);
+apiRouter.use('/vaccination/api', VaccinationRoute);
+
+// Base application mounts everything under the /api namespace
+app.use('/api', apiRouter);
+
 
 // ─── 404 Handler ───────────────────────────────────────────────────
 app.use((req, res) => {
