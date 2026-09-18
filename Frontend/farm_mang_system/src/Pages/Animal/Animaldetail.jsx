@@ -24,7 +24,7 @@ import {
 import api, { API_BASE_URL } from "../../apis/axios";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
-import AnimalFormDialog from "./AnimalFormDialog";
+import AnimalFormDialog from "./Animalformdialog";
 
 const CATEGORY_STYLE = {
   PRESENCE: { bg: "color-mix(in srgb, var(--primary) 14%, transparent)", color: "var(--primary)" },
