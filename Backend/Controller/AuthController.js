@@ -292,9 +292,14 @@ const LoginUser = async (req, res) => {
 
     // 5. Set httpOnly cookie
     res.cookie('token', authToken, {
+      // httpOnly: true,
+      // secure: process.env.NODE_ENV === 'production',
+      // sameSite: 'strict',
+      // maxAge: 24 * 60 * 60 * 1000,
+
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: false,   // 🔑 Temporarily set to false so cookies work on http://
+      sameSite: 'lax', // 🔑 Set to 'lax' so tabs can safely share the token cookie
       maxAge: 24 * 60 * 60 * 1000,
     });
 
