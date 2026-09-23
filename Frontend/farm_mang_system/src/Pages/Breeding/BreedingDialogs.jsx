@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Dialog } from "primereact/dialog";
 import { Dropdown } from "primereact/dropdown";
@@ -9,13 +9,12 @@ import { InputNumber } from "primereact/inputnumber";
 import { Calendar } from "primereact/calendar";
 import { Checkbox } from "primereact/checkbox";
 import { Button } from "primereact/button";
+import { Plus, Trash2 } from "lucide-react";
 import {
   PregnancyServiceSchema,
   ConfirmPregnancySchema,
   ClosePregnancySchema,
   BirthSchema,
-  KidSchema,
-  RegisterKidSchema,
 } from "../../validations/BreedingSchema";
 
 const dialogStyles = `
@@ -191,6 +190,41 @@ export function ClosePregnancyDialog({ open, onHide, saving, onSubmitForm }) {
   );
 }
 
+// Dropdown options shared by the birth dialog.
+const mapOptions = (list) => (list || []).map((x) => ({ label: x.name, value: x.id }));
+
+// A blank child row. Animal Type & Breed follow the father (sire) — prefer the
+// values carried on the pregnancy row, fall back to the animals list.
+function blankKid(pregnancy, animals) {
+  const sire = (animals || []).find((a) => a.id === pregnancy?.sire?.id);
+  return {
+    id: null,
+    stillborn: false,
+    tag_number: "",
+    name: "",
+    animal_type_id: pregnancy?.sire?.animal_type_id ?? sire?.animal_type_id ?? null,
+    breed_id: pregnancy?.sire?.breed_id ?? sire?.breed_id ?? null,
+    gender_id: null,
+    gender: "",
+    birth_weight_kg: null,
+    notes: "",
+  };
+}
+
+// Row values for a child already stored on the birth record (edit mode).
+const storedKid = (kid) => ({
+  id: kid.id,
+  stillborn: !!kid.is_stillborn,
+  tag_number: kid.animal?.tag_number || "",
+  name: kid.animal?.name || "",
+  animal_type_id: kid.animal?.animal_type_id ?? null,
+  breed_id: kid.animal?.breed_id ?? null,
+  gender_id: kid.animal?.gender_id ?? null,
+  gender: kid.gender || "",
+  birth_weight_kg: kid.birth_weight_kg != null ? Number(kid.birth_weight_kg) : null,
+  notes: kid.notes || "",
+});
+
 export function RecordBirthDialog({
   open,
   onHide,
@@ -200,8 +234,12 @@ export function RecordBirthDialog({
   genders,
   animals,
   pregnancy,
+  birth,
   onSubmitForm,
 }) {
+  // `birth` is set when the dialog is reopened to edit an existing record.
+  const editing = !!birth;
+
   const {
     control,
     register,
@@ -212,66 +250,75 @@ export function RecordBirthDialog({
     formState: { errors },
   } = useForm({
     resolver: yupResolver(BirthSchema),
-    defaultValues: {
-      birth_date: new Date(),
-      birth_weight_kg: null,
-      notes: "",
-      tag_number: "",
-      name: "",
-      animal_type_id: null,
-      breed_id: null,
-      gender_id: null,
-    },
+    defaultValues: { birth_date: new Date(), notes: "", kids: [blankKid(null, [])] },
   });
+
+  const { fields, append, remove } = useFieldArray({ control, name: "kids" });
 
   useEffect(() => {
     if (!open) return;
-    // The newborn follows its father (Male): Animal Type and Breed are pre-filled
-    // from the sire. Prefer the sire's own values carried on the pregnancy row;
-    // fall back to the animals list in case they are missing (e.g. older records).
-    const sire = animals.find((a) => a.id === pregnancy?.sire?.id);
+
+    if (birth) {
+      const kids = (birth.kids || []).map(storedKid);
+      reset({
+        birth_date: birth.birth_date ? new Date(birth.birth_date) : new Date(),
+        notes: birth.notes || "",
+        kids: kids.length ? kids : [blankKid(pregnancy, animals)],
+      });
+      return;
+    }
+
     reset({
       birth_date: new Date(),
-      birth_weight_kg: null,
       notes: "",
-      tag_number: "",
-      name: "",
-      animal_type_id: pregnancy?.sire?.animal_type_id ?? sire?.animal_type_id ?? null,
-      breed_id: pregnancy?.sire?.breed_id ?? sire?.breed_id ?? null,
-      gender_id: null,
+      kids: [blankKid(pregnancy, animals)],
     });
-  }, [open, reset, animals, pregnancy]);
+  }, [open, reset, animals, pregnancy, birth]);
 
-  const typeId = watch("animal_type_id");
-  const typeOptions = (animalTypes || []).map((t) => ({ label: t.name, value: t.id }));
-  const breedOptions = (breeds || [])
-    .filter((b) => b.animal_type_id === typeId)
-    .map((b) => ({ label: b.name, value: b.id }));
-  const genderOptions = (genders || []).map((g) => ({ label: g.name, value: g.id }));
+  const typeOptions = mapOptions(animalTypes);
+  const genderOptions = mapOptions(genders);
+  const watchedKids = watch("kids") || [];
+  const breedOptionsFor = (typeId) =>
+    (breeds || [])
+      .filter((b) => b.animal_type_id === typeId)
+      .map((b) => ({ label: b.name, value: b.id }));
 
   return (
-    <Dialog header="Record Birth" visible={open} onHide={onHide} style={{ width: "32rem" }} className="br-dialog">
+    <Dialog
+      header={editing ? "Edit Birth Record" : "Record Birth"}
+      visible={open}
+      onHide={onHide}
+      style={{ width: "44rem" }}
+      contentStyle={{ maxHeight: "68vh", overflowY: "auto" }}
+      className="br-dialog"
+    >
       <style>{dialogStyles}</style>
       <form
         onSubmit={handleSubmit((d) =>
           onSubmitForm({
             birth_date: new Date(d.birth_date).toISOString(),
             notes: d.notes?.trim() || null,
-            kid: {
-              tag_number: d.tag_number.trim(),
-              name: d.name?.trim() || null,
-              animal_type_id: d.animal_type_id,
-              breed_id: d.breed_id,
-              gender_id: d.gender_id,
-              birth_weight_kg: d.birth_weight_kg ?? null,
-              notes: d.notes?.trim() || null,
-            },
+            // One entry per child — every live child becomes its own animal.
+            kids: (d.kids || []).map((k) => ({
+              id: k.id || null,
+              is_stillborn: !!k.stillborn,
+              tag_number: k.stillborn ? null : k.tag_number?.trim() || null,
+              name: k.stillborn ? null : k.name?.trim() || null,
+              animal_type_id: k.stillborn ? null : k.animal_type_id ?? null,
+              breed_id: k.stillborn ? null : k.breed_id ?? null,
+              gender_id: k.stillborn ? null : k.gender_id ?? null,
+              gender: k.stillborn ? k.gender?.trim() || null : null,
+              birth_weight_kg: k.birth_weight_kg ?? null,
+              notes: k.notes?.trim() || null,
+            })),
           })
         )}
         className="flex flex-col gap-4 pt-2"
       >
         <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}>
-          This will record the birth and automatically register the newborn as a new animal.
+          {editing
+            ? "Update this birth record. Edited children update their animal records, new children are registered as animals, and removed children are deleted."
+            : "Every live child is registered in the Animals module automatically — use \"Add another child\" for twins, triplets, and so on."}
           {pregnancy?.dam && <div><strong style={{ color: "var(--text)" }}>Female:</strong> {pregnancy.dam.tag_number}</div>}
           {pregnancy?.sire && <div><strong style={{ color: "var(--text)" }}>Male:</strong> {pregnancy.sire.tag_number}</div>}
         </div>
@@ -285,163 +332,125 @@ export function RecordBirthDialog({
             {errors.birth_date && <p className="err text-xs">{errors.birth_date.message}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold">Birth weight (kg)</label>
-            <Controller name="birth_weight_kg" control={control} render={({ field }) => (
-              <InputNumber value={field.value} onValueChange={(e) => field.onChange(e.value)} minFractionDigits={0} maxFractionDigits={2} className="w-full" inputClassName="w-full" />
-            )} />
-            {errors.birth_weight_kg && <p className="err text-xs">{errors.birth_weight_kg.message}</p>}
+            <label className="text-[0.8rem] font-semibold">Birth notes (optional)</label>
+            <InputTextarea rows={1} {...register("notes")} className="w-full" />
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Tag number</label>
-          <InputText {...register("tag_number")} placeholder="Unique tag on this farm" className="w-full" />
-          {errors.tag_number && <p className="err text-xs">{errors.tag_number.message}</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Name (optional)</label>
-          <InputText {...register("name")} placeholder="e.g. Buttercup Jr." className="w-full" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold">Animal type</label>
-            <Controller name="animal_type_id" control={control} render={({ field }) => (
-              <Dropdown value={field.value} onChange={(e) => { field.onChange(e.value); setValue("breed_id", null); }} options={typeOptions} optionLabel="label" optionValue="value" placeholder="Select type" filter className="w-full" />
-            )} />
-            {errors.animal_type_id && <p className="err text-xs">{errors.animal_type_id.message}</p>}
+        {/* One entry per child — twins, triplets, stillborn, … */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <label className="text-[0.8rem] font-semibold">Children</label>
+            <Button
+              type="button"
+              label="Add another child"
+              text
+              icon={<Plus size={14} />}
+              onClick={() => append(blankKid(pregnancy, animals))}
+              className="!px-0 !text-sm"
+            />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold">Breed</label>
-            <Controller name="breed_id" control={control} render={({ field }) => (
-              <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={breedOptions} optionLabel="label" optionValue="value" placeholder={typeId ? "Select breed" : "Pick type first"} disabled={!typeId} filter className="w-full" />
-            )} />
-            {errors.breed_id && <p className="err text-xs">{errors.breed_id.message}</p>}
-          </div>
-        </div>
-        <p className="-mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
-          Animal type &amp; breed are pre-filled from the newborn's father (♂) — update them if needed.
-        </p>
+          {errors.kids?.message && <p className="err text-xs">{errors.kids.message}</p>}
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Gender</label>
-          <Controller name="gender_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={genderOptions} optionLabel="label" optionValue="value" placeholder="Select gender" className="w-full" />
-          )} />
-          {errors.gender_id && <p className="err text-xs">{errors.gender_id.message}</p>}
-        </div>
+          {fields.map((kid, idx) => {
+            const kidErr = errors.kids?.[idx] || {};
+            const watched = watchedKids[idx] || {};
+            const isStillborn = !!watched.stillborn;
+            return (
+              <div key={kid.id} className="flex flex-col gap-3 rounded-lg border p-3" style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                    Child {idx + 1}
+                    {isStillborn ? " · stillborn" : ""}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        inputId={`kid-stillborn-${idx}`}
+                        checked={isStillborn}
+                        onChange={(e) => setValue(`kids.${idx}.stillborn`, e.checked)}
+                      />
+                      <label htmlFor={`kid-stillborn-${idx}`} className="text-xs">Stillborn</label>
+                    </div>
+                    {fields.length > 1 && (
+                      <Button
+                        type="button"
+                        text
+                        severity="danger"
+                        size="small"
+                        icon={<Trash2 size={14} />}
+                        onClick={() => remove(idx)}
+                        tooltip="Remove child"
+                        tooltipOptions={{ position: "left" }}
+                      />
+                    )}
+                  </div>
+                </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Notes (optional)</label>
-          <InputTextarea rows={2} {...register("notes")} className="w-full" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[0.8rem] font-semibold">Tag number</label>
+                    <InputText {...register(`kids.${idx}.tag_number`)} disabled={isStillborn} placeholder="Unique tag on this farm" className="w-full" />
+                    {kidErr.tag_number && <p className="err text-xs">{kidErr.tag_number.message}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[0.8rem] font-semibold">Name (optional)</label>
+                    <InputText {...register(`kids.${idx}.name`)} disabled={isStillborn} placeholder="e.g. Buttercup Jr." className="w-full" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[0.8rem] font-semibold">Animal type</label>
+                    <Controller name={`kids.${idx}.animal_type_id`} control={control} render={({ field }) => (
+                      <Dropdown value={field.value} onChange={(e) => { field.onChange(e.value); setValue(`kids.${idx}.breed_id`, null); }} options={typeOptions} optionLabel="label" optionValue="value" placeholder="Select type" disabled={isStillborn} filter className="w-full" />
+                    )} />
+                    {kidErr.animal_type_id && <p className="err text-xs">{kidErr.animal_type_id.message}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[0.8rem] font-semibold">Breed</label>
+                    <Controller name={`kids.${idx}.breed_id`} control={control} render={({ field }) => (
+                      <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={breedOptionsFor(watched.animal_type_id)} optionLabel="label" optionValue="value" placeholder={watched.animal_type_id ? "Select breed" : "Pick type first"} disabled={isStillborn || !watched.animal_type_id} filter className="w-full" />
+                    )} />
+                    {kidErr.breed_id && <p className="err text-xs">{kidErr.breed_id.message}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[0.8rem] font-semibold">Gender</label>
+                    <Controller name={`kids.${idx}.gender_id`} control={control} render={({ field }) => (
+                      <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={genderOptions} optionLabel="label" optionValue="value" placeholder="Select gender" disabled={isStillborn} className="w-full" />
+                    )} />
+                    {kidErr.gender_id && <p className="err text-xs">{kidErr.gender_id.message}</p>}
+                  </div>
+                </div>
+
+                {isStillborn && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[0.8rem] font-semibold">Sex (free text, optional)</label>
+                    <InputText {...register(`kids.${idx}.gender`)} placeholder="e.g. Female" className="w-full" />
+                    {kidErr.gender && <p className="err text-xs">{kidErr.gender.message}</p>}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[0.8rem] font-semibold">Birth weight (kg)</label>
+                    <Controller name={`kids.${idx}.birth_weight_kg`} control={control} render={({ field }) => (
+                      <InputNumber value={field.value} onValueChange={(e) => field.onChange(e.value)} minFractionDigits={0} maxFractionDigits={2} className="w-full" inputClassName="w-full" />
+                    )} />
+                    {kidErr.birth_weight_kg && <p className="err text-xs">{kidErr.birth_weight_kg.message}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5" style={{ gridColumn: "span 2" }}>
+                    <label className="text-[0.8rem] font-semibold">Child notes (optional)</label>
+                    <InputText {...register(`kids.${idx}.notes`)} placeholder="Anything specific about this child" className="w-full" />
+                    {kidErr.notes && <p className="err text-xs">{kidErr.notes.message}</p>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <Button type="submit" label={saving ? "Saving…" : "Save Birth"} loading={saving} className="!w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold" />
-      </form>
-    </Dialog>
-  );
-}
-
-
-
-export function AddKidDialog({ open, onHide, saving, genders, onSubmitForm }) {
-  const { control, register, handleSubmit, reset, formState: { errors } } = useForm({
-    resolver: yupResolver(KidSchema),
-    defaultValues: { is_stillborn: false, gender: null, birth_weight_kg: null, notes: "" },
-  });
-
-  useEffect(() => {
-    if (!open) return;
-    reset({ is_stillborn: false, gender: null, birth_weight_kg: null, notes: "" });
-  }, [open, reset]);
-
-  const genderOptions = (genders || []).map((g) => ({ label: g.name, value: g.name }));
-
-  return (
-    <Dialog header="Register Offspring" visible={open} onHide={onHide} style={{ width: "28rem" }} className="br-dialog">
-      <style>{dialogStyles}</style>
-      <form
-        onSubmit={handleSubmit((d) => onSubmitForm({
-          is_stillborn: !!d.is_stillborn,
-          gender: d.gender || null,
-          birth_weight_kg: d.birth_weight_kg ?? null,
-          notes: d.notes?.trim() || null,
-        }))}
-        className="flex flex-col gap-4 pt-2"
-      >
-        <div className="flex items-center gap-3">
-          <Controller name="is_stillborn" control={control} render={({ field }) => (
-            <Checkbox inputId="kidStill" checked={!!field.value} onChange={(e) => field.onChange(e.checked)} />
-          )} />
-          <label htmlFor="kidStill" className="text-sm">Stillborn</label>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Sex / gender</label>
-          <Controller name="gender" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={genderOptions} optionLabel="label" optionValue="value" placeholder="Select gender" showClear filter className="w-full" />
-          )} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Birth weight (kg) <span style={{ color: "var(--danger)" }}>*</span></label>
-          <Controller name="birth_weight_kg" control={control} render={({ field }) => (
-            <InputNumber value={field.value} onValueChange={(e) => field.onChange(e.value)} minFractionDigits={0} maxFractionDigits={2} className="w-full" inputClassName="w-full" />
-          )} />
-          {errors.birth_weight_kg && <p className="err text-xs">{errors.birth_weight_kg.message}</p>}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Notes (optional)</label>
-          <InputTextarea rows={2} {...register("notes")} className="w-full" />
-        </div>
-        <Button type="submit" label={saving ? "Saving…" : "Add Offspring"} loading={saving} className="!w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold" />
-      </form>
-    </Dialog>
-  );
-}
-
-export function RegisterKidDialog({ open, onHide, saving, genders, onSubmitForm }) {
-  const { control, register, handleSubmit, reset, formState: { errors } } = useForm({
-    resolver: yupResolver(RegisterKidSchema),
-    defaultValues: { tag_number: "", name: "", gender_id: null, notes: "" },
-  });
-
-  useEffect(() => { if (open) reset({ tag_number: "", name: "", gender_id: null, notes: "" }); }, [open, reset]);
-
-  const genderOptions = genders.map((g) => ({ id: g.id, label: g.name }));
-
-  return (
-    <Dialog header="Register as New Animal" visible={open} onHide={onHide} style={{ width: "30rem" }} className="br-dialog">
-      <style>{dialogStyles}</style>
-      <form
-        onSubmit={handleSubmit((d) => onSubmitForm({
-          tag_number: d.tag_number.trim(),
-          name: d.name?.trim() || null,
-          gender_id: d.gender_id,
-          notes: d.notes?.trim() || null,
-        }))}
-        className="flex flex-col gap-4 pt-2"
-      >
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Tag number</label>
-          <InputText {...register("tag_number")} placeholder="Unique tag on this farm" className="w-full" />
-          {errors.tag_number && <p className="err text-xs">{errors.tag_number.message}</p>}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Name (optional)</label>
-          <InputText {...register("name")} placeholder="e.g. Buttercup Jr." className="w-full" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Gender</label>
-          <Controller name="gender_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={genderOptions} optionLabel="label" optionValue="id" placeholder="Select gender" />
-          )} />
-          {errors.gender_id && <p className="err text-xs">{errors.gender_id.message}</p>}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[0.8rem] font-semibold">Notes (optional)</label>
-          <InputTextarea rows={2} {...register("notes")} className="w-full" />
-        </div>
-        <Button type="submit" label={saving ? "Saving…" : "Register Animal"} loading={saving} className="!w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold" />
       </form>
     </Dialog>
   );

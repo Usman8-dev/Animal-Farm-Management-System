@@ -137,12 +137,13 @@ const DeletePregnancy = async (req, res) => {
 
 const CreateBirth = async (req, res) => {
   try {
-    const { pregnancy_id, birth_date, notes, kid } = req.body;
+    const { pregnancy_id, birth_date, notes, kid, kids } = req.body;
     const data = await BreedingService.createBirth({
       farmId: req.user.farmId,
       pregnancyId: Number(pregnancy_id),
       birthDate: birth_date,
       notes: notes?.trim() || null,
+      kids: Array.isArray(kids) ? kids : null,
       kid: kid || null,
       personId: req.user.id,
     });
@@ -150,6 +151,27 @@ const CreateBirth = async (req, res) => {
   } catch (err) {
     if (err instanceof AppError) return res.status(err.statusCode).json({ success: false, message: err.message });
     console.error('CreateBirth error:', err);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Re-saving a birth from the same dialog: edits birth_date/notes and
+// reconciles the children list (add / update / remove).
+const UpdateBirth = async (req, res) => {
+  try {
+    const { birth_date, notes, kids } = req.body;
+    const data = await BreedingService.updateBirth({
+      farmId: req.user.farmId,
+      birthId: Number(req.params.id),
+      birthDate: birth_date,
+      notes: notes === undefined ? undefined : notes?.trim() || null,
+      kids: Array.isArray(kids) ? kids : [],
+      personId: req.user.id,
+    });
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    if (err instanceof AppError) return res.status(err.statusCode).json({ success: false, message: err.message });
+    console.error('UpdateBirth error:', err);
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
@@ -298,6 +320,7 @@ export {
   ClosePregnancy,
   DeletePregnancy,
   CreateBirth,
+  UpdateBirth,
   GetBirth,
   AddKid,
   UpdateKid,

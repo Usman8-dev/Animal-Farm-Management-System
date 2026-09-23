@@ -284,7 +284,134 @@ async function deletePregnancy({ farmId, pregnancyId, personId }) {
   });
 }
 
-async function createBirth({ farmId, pregnancyId, birthDate, notes, kid, personId }) {
+// ── Births ───────────────────────────────────────────────────
+// One birth can record several children (twins, triplets, …). Every live child
+// is auto-registered as a farm animal; stillborn children are stored as
+// birth-kid rows only.
+
+// Accepts the new `kids` array or the legacy single `kid` payload.
+function normaliseBirthKids({ kids, kid }) {
+  if (Array.isArray(kids)) return kids.filter((k) => k && typeof k === 'object');
+  if (kid && typeof kid === 'object') return [kid];
+  return [];
+}
+
+const toWeight = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+
+// Validates one child and describes what should be persisted for it.
+async function planBirthKid({ farmId, entry, index, seenTags, excludeAnimalId = null }) {
+  const stillborn = !!entry.is_stillborn;
+  const weight = toWeight(entry.birth_weight_kg);
+  const notes = entry.notes?.toString().trim() || null;
+
+  if (stillborn) {
+    return { stillborn: true, weight, notes, gender: entry.gender?.toString().trim() || null };
+  }
+
+  const tag = String(entry.tag_number ?? '').trim();
+  if (!tag) throw new AppError(`Tag number is required for child #${index + 1}`, 422);
+
+  const key = tag.toLowerCase();
+  if (seenTags.has(key)) {
+    throw new AppError(`Tag number "${tag}" is used twice in this birth record`, 422);
+  }
+  seenTags.add(key);
+
+  await AnimalService.assertUniqueTagNumber({
+    farm_id: farmId,
+    tag_number: tag,
+    excludeAnimalId,
+  });
+  await AnimalService.validateClassification({
+    animal_type_id: Number(entry.animal_type_id),
+    breed_id: Number(entry.breed_id),
+    gender_id: Number(entry.gender_id),
+    farm_id: farmId,
+  });
+
+  return {
+    stillborn: false,
+    tag,
+    name: entry.name?.toString().trim() || null,
+    animal_type_id: Number(entry.animal_type_id),
+    breed_id: Number(entry.breed_id),
+    gender_id: Number(entry.gender_id),
+    weight,
+    notes,
+  };
+}
+
+// Animal row for a live child — lineage follows the pregnancy's dam/sire.
+function birthAnimalData({ plan, farmId, bd, damId, sireId, personId }) {
+  return {
+    farm_id: farmId,
+    tag_number: plan.tag,
+    name: plan.name,
+    animal_type_id: plan.animal_type_id,
+    breed_id: plan.breed_id,
+    gender_id: plan.gender_id,
+    birth_date: bd,
+    acquisition_type: 'BORN_IN_FARM',
+    acquired_on: bd,
+    mother_id: damId,
+    father_id: sireId,
+    notes: plan.notes,
+    createdby: personId,
+  };
+}
+
+// Soft-deletes an animal this birth created. Refuses when the animal is already
+// referenced elsewhere, so lineage/health/weight history is never orphaned.
+async function removeBirthAnimal(tx, animalId, personId) {
+  const animal = await tx.animal.findUnique({
+    where: { id: animalId },
+    select: { id: true, tag_number: true, deleted_at: true },
+  });
+  if (!animal || animal.deleted_at) return;
+
+  const [asParent, inPregnancy, weights, valuations, vaccinations, statuses] = await Promise.all([
+    tx.animal.findFirst({ where: { deleted_at: null, OR: [{ mother_id: animalId }, { father_id: animalId }] }, select: { id: true } }),
+    tx.pregnancy.findFirst({ where: { deleted_at: null, OR: [{ dam_id: animalId }, { sire_id: animalId }] }, select: { id: true } }),
+    tx.weightHistory.findFirst({ where: { animal_id: animalId, deleted_at: null }, select: { id: true } }),
+    tx.animalValuation.findFirst({ where: { animal_id: animalId, deleted_at: null }, select: { id: true } }),
+    tx.animalVaccination.findFirst({ where: { animal_id: animalId, deleted_at: null }, select: { id: true } }),
+    tx.statusHistory.findFirst({ where: { animal_id: animalId, deleted_at: null }, select: { id: true } }),
+  ]);
+
+  if (asParent || inPregnancy || weights || valuations || vaccinations || statuses) {
+    throw new AppError(
+      `Child ${animal.tag_number} already has other records on the farm — it cannot be removed here`,
+      409
+    );
+  }
+
+  await tx.animal.update({
+    where: { id: animalId },
+    data: { deleted_at: new Date(), deletedby: personId },
+  });
+}
+
+// Birth-kid row for one planned child (animal_id is null for stillborn kids).
+function birthKidData({ plan, birthId, animalId, personId }) {
+  return {
+    birth_id: birthId,
+    animal_id: animalId,
+    is_stillborn: plan.stillborn,
+    gender: plan.stillborn ? plan.gender : null,
+    birth_weight_kg: plan.weight,
+    notes: plan.notes,
+    createdby: personId,
+  };
+}
+
+const birthInclude = {
+  kids: {
+    where: { deleted_at: null },
+    include: { animal: true },
+  },
+};
+
+async function createBirth({ farmId, pregnancyId, birthDate, notes, kids, kid, personId }) {
   await assertPregnancyOnFarm(pregnancyId, farmId);
   const existing = await prisma.birth.findFirst({
     where: { pregnancy_id: pregnancyId, deleted_at: null },
@@ -294,43 +421,20 @@ async function createBirth({ farmId, pregnancyId, birthDate, notes, kid, personI
   const bd = birthDate ? new Date(birthDate) : new Date();
   if (Number.isNaN(bd.getTime())) throw new AppError('Invalid birth_date', 422);
 
-  // Optional auto-registration of the newborn as a farm animal. When a `kid`
-  // payload arrives, the newborn is created (BORN_IN_FARM) and linked to the
-  // birth in the same transaction — one action, not three.
-  let newborn = null;
-  if (kid && kid.tag_number) {
-    const tag = String(kid.tag_number).trim();
-    if (!tag) throw new AppError('tag_number is required to create the newborn', 422);
+  const pregnancy = await prisma.pregnancy.findUnique({
+    where: { id: pregnancyId },
+    include: { dam: true, sire: true },
+  });
 
-    await AnimalService.assertUniqueTagNumber({ farm_id: farmId, tag_number: tag });
-    await AnimalService.validateClassification({
-      animal_type_id: Number(kid.animal_type_id),
-      breed_id: Number(kid.breed_id),
-      gender_id: Number(kid.gender_id),
-      farm_id: farmId,
-    });
-
-    const preg = await prisma.pregnancy.findUnique({
-      where: { id: pregnancyId },
-      include: { dam: true, sire: true },
-    });
-
-    newborn = {
-      farm_id: farmId,
-      tag_number: tag,
-      name: kid.name?.trim() || null,
-      animal_type_id: Number(kid.animal_type_id),
-      breed_id: Number(kid.breed_id),
-      gender_id: Number(kid.gender_id),
-      birth_date: bd,
-      acquisition_type: 'BORN_IN_FARM',
-      acquired_on: bd,
-      mother_id: preg.dam?.id ?? null,
-      father_id: preg.sire?.id ?? null,
-      notes: kid.notes?.trim() || null,
-      createdby: personId,
-    };
+  const entries = normaliseBirthKids({ kids, kid });
+  const seenTags = new Set();
+  const plans = [];
+  for (let i = 0; i < entries.length; i += 1) {
+    plans.push(await planBirthKid({ farmId, entry: entries[i], index: i, seenTags }));
   }
+
+  // No live child → the pregnancy is closed as a stillbirth.
+  const outcome = plans.length > 0 && plans.every((p) => p.stillborn) ? 'STILLBIRTH' : 'LIVE_BIRTH';
 
   return prisma.$transaction(async (tx) => {
     const birth = await tx.birth.create({
@@ -341,35 +445,189 @@ async function createBirth({ farmId, pregnancyId, birthDate, notes, kid, personI
         createdby: personId,
       },
     });
+
     // Recording a birth closes out the pregnancy.
     await tx.pregnancy.update({
       where: { id: pregnancyId },
-      data: { outcome: 'LIVE_BIRTH', outcome_date: bd, updatedby: personId },
+      data: { outcome, outcome_date: bd, updatedby: personId },
     });
 
-    if (newborn) {
-      const animal = await tx.animal.create({ data: newborn });
+    for (const plan of plans) {
+      let animalId = null;
+      if (!plan.stillborn) {
+        const animal = await tx.animal.create({
+          data: birthAnimalData({
+            plan,
+            farmId,
+            bd,
+            damId: pregnancy?.dam?.id ?? null,
+            sireId: pregnancy?.sire?.id ?? null,
+            personId,
+          }),
+        });
+        animalId = animal.id;
+      }
+
       await tx.birthKid.create({
+        data: birthKidData({ plan, birthId: birth.id, animalId, personId }),
+      });
+    }
+
+    return tx.birth.findUnique({ where: { id: birth.id }, include: birthInclude });
+  });
+}
+
+// Edits an existing birth: birth_date/notes plus a full reconcile of its
+// children (update existing, insert new, soft-delete removed). Animals created
+// by this birth are kept in sync with their child rows.
+async function updateBirth({ farmId, birthId, birthDate, notes, kids, personId }) {
+  const birth = await assertBirthOnFarm(birthId, farmId);
+
+  const bd = birthDate ? new Date(birthDate) : birth.birth_date;
+  if (Number.isNaN(bd.getTime())) throw new AppError('Invalid birth_date', 422);
+
+  const pregnancy = await prisma.pregnancy.findUnique({
+    where: { id: birth.pregnancy_id },
+    include: { dam: true, sire: true },
+  });
+
+  const existingKids = await prisma.birthKid.findMany({
+    where: { birth_id: birthId, deleted_at: null },
+    include: { animal: true },
+  });
+  const existingById = new Map(existingKids.map((k) => [k.id, k]));
+
+  const entries = normaliseBirthKids({ kids, kid: null }).map((e) => ({
+    ...e,
+    kidId: e.id === null || e.id === undefined || e.id === '' ? null : Number(e.id),
+  }));
+  const keptIds = new Set(entries.filter((e) => e.kidId).map((e) => e.kidId));
+
+  const seenTags = new Set();
+  const plans = [];
+  for (let i = 0; i < entries.length; i += 1) {
+    const entry = entries[i];
+    const existingKid = entry.kidId ? existingById.get(entry.kidId) : null;
+    if (entry.kidId && !existingKid) {
+      throw new AppError(`Child #${i + 1} does not belong to this birth record`, 422);
+    }
+    const plan = await planBirthKid({
+      farmId,
+      entry,
+      index: i,
+      seenTags,
+      excludeAnimalId: existingKid?.animal_id ?? null,
+    });
+    plans.push({ plan, existingKid });
+  }
+
+  const outcome = plans.length > 0 && plans.every((p) => p.plan.stillborn) ? 'STILLBIRTH' : 'LIVE_BIRTH';
+  const animalContext = {
+    farmId,
+    bd,
+    damId: pregnancy?.dam?.id ?? null,
+    sireId: pregnancy?.sire?.id ?? null,
+    personId,
+  };
+
+  return prisma.$transaction(async (tx) => {
+    await tx.birth.update({
+      where: { id: birthId },
+      data: {
+        birth_date: bd,
+        notes: notes === undefined ? birth.notes : notes || null,
+        updatedby: personId,
+      },
+    });
+
+    await tx.pregnancy.update({
+      where: { id: birth.pregnancy_id },
+      data: { outcome, outcome_date: bd, updatedby: personId },
+    });
+
+    // Children removed in the dialog → soft-delete the row and its animal.
+    for (const kid of existingKids) {
+      if (keptIds.has(kid.id)) continue;
+      await tx.birthKid.update({
+        where: { id: kid.id },
+        data: { deleted_at: new Date(), deletedby: personId },
+      });
+      if (kid.animal_id) await removeBirthAnimal(tx, kid.animal_id, personId);
+    }
+
+    for (const { plan, existingKid } of plans) {
+      // Child added while editing
+      if (!existingKid) {
+        let newAnimalId = null;
+        if (!plan.stillborn) {
+          const animal = await tx.animal.create({
+            data: birthAnimalData({ plan, ...animalContext }),
+          });
+          newAnimalId = animal.id;
+        }
+        await tx.birthKid.create({
+          data: birthKidData({ plan, birthId, animalId: newAnimalId, personId }),
+        });
+        continue;
+      }
+
+      let animalId = existingKid.animal_id;
+
+      // Corrected to stillborn → retire the animal this birth created for it.
+      if (plan.stillborn) {
+        if (animalId) {
+          await removeBirthAnimal(tx, animalId, personId);
+          animalId = null;
+        }
+        await tx.birthKid.update({
+          where: { id: existingKid.id },
+          data: {
+            animal_id: null,
+            is_stillborn: true,
+            gender: plan.gender,
+            birth_weight_kg: plan.weight,
+            notes: plan.notes,
+            updatedby: personId,
+          },
+        });
+        continue;
+      }
+
+      // Live child → keep its animal row in sync (register it when it has none).
+      if (animalId) {
+        await tx.animal.update({
+          where: { id: animalId },
+          data: {
+            tag_number: plan.tag,
+            name: plan.name,
+            animal_type_id: plan.animal_type_id,
+            breed_id: plan.breed_id,
+            gender_id: plan.gender_id,
+            birth_date: bd,
+            notes: plan.notes,
+            updatedby: personId,
+          },
+        });
+      } else {
+        const animal = await tx.animal.create({
+          data: birthAnimalData({ plan, ...animalContext }),
+        });
+        animalId = animal.id;
+      }
+
+      await tx.birthKid.update({
+        where: { id: existingKid.id },
         data: {
-          birth_id: birth.id,
-          animal_id: animal.id,
+          animal_id: animalId,
           is_stillborn: false,
-          birth_weight_kg: kid.birth_weight_kg != null ? Number(kid.birth_weight_kg) : null,
-          notes: kid.notes?.trim() || null,
-          createdby: personId,
+          birth_weight_kg: plan.weight,
+          notes: plan.notes,
+          updatedby: personId,
         },
       });
     }
 
-    return tx.birth.findUnique({
-      where: { id: birth.id },
-      include: {
-        kids: {
-          where: { deleted_at: null },
-          include: { animal: true },
-        },
-      },
-    });
+    return tx.birth.findUnique({ where: { id: birthId }, include: birthInclude });
   });
 }
 
@@ -385,7 +643,19 @@ async function getBirth({ farmId, birthId }) {
       },
       kids: {
         where: { deleted_at: null },
-        include: { animal: { select: { id: true, tag_number: true } } },
+        include: {
+          // Full animal details so the Record Birth dialog can be reopened for edits.
+          animal: {
+            select: {
+              id: true,
+              tag_number: true,
+              name: true,
+              animal_type_id: true,
+              breed_id: true,
+              gender_id: true,
+            },
+          },
+        },
       },
     },
   });
@@ -620,6 +890,7 @@ export const BreedingService = {
   closePregnancy,
   deletePregnancy,
   createBirth,
+  updateBirth,
   getBirth,
   addKid,
   updateKid,

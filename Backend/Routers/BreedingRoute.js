@@ -12,6 +12,7 @@ import {
   ClosePregnancy,
   DeletePregnancy,
   CreateBirth,
+  UpdateBirth,
   GetBirth,
   AddKid,
   UpdateKid,
@@ -33,6 +34,7 @@ import {
   ConfirmPregnancyValidator,
   ClosePregnancyValidator,
   CreateBirthValidator,
+  UpdateBirthValidator,
   AddKidValidator,
   UpdateKidValidator,
   RegisterKidValidator,
@@ -107,6 +109,15 @@ router.post(
 );
 
 router.get('/births/:id', BirthIdParam, validate, GetBirth);
+
+router.put(
+  '/births/:id',
+  authorizeRoles('owner', 'manager'),
+  BirthIdParam,
+  UpdateBirthValidator,
+  validate,
+  UpdateBirth
+);
 
 router.post(
   '/births/:id/kids',

@@ -32,21 +32,42 @@ const ClosePregnancyValidator = [
   body('outcome_date').optional({ nullable: true }).isISO8601().withMessage('outcome_date must be a valid date'),
 ];
 
+// Shared rules for child entries in the birth dialog. A live child must carry a
+// tag number plus type/breed/gender so an animal row can be created for it;
+// stillborn children only need optional weight/notes/gender.
+const kidArrayRules = (base) => [
+  base(`kids`).optional({ nullable: true }).isArray().withMessage('kids must be an array'),
+  base('kids.*.id').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('kid id must be a valid id'),
+  base('kids.*.is_stillborn').optional().isBoolean().withMessage('is_stillborn must be a boolean'),
+  base('kids.*.tag_number').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 40 }).withMessage('tag_number is too long'),
+  base('kids.*.name').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 80 }).withMessage('name is too long'),
+  base('kids.*.animal_type_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('animal_type_id must be a valid id'),
+  base('kids.*.breed_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('breed_id must be a valid id'),
+  base('kids.*.gender_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('gender_id must be a valid id'),
+  base('kids.*.gender').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 50 }).withMessage('gender is too long'),
+  base('kids.*.birth_weight_kg').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('birth_weight_kg must be 0 or greater'),
+  base('kids.*.notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('kid notes is too long'),
+];
+
 const CreateBirthValidator = [
   body('pregnancy_id').isInt({ min: 1 }).withMessage('pregnancy_id is required'),
   body('birth_date').optional({ nullable: true }).isISO8601().withMessage('birth_date must be a valid date'),
   body('notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('notes is too long'),
-  // Auto-register newborn as an animal (same fields as the New Animal form).
+  ...kidArrayRules(body),
+  // Legacy single-child payload (kept so older clients keep working).
   body('kid.tag_number').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 40 }).withMessage('tag_number is too long'),
   body('kid.name').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 80 }).withMessage('name is too long'),
   body('kid.animal_type_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('animal_type_id must be a valid id'),
   body('kid.breed_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('breed_id must be a valid id'),
   body('kid.gender_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('gender_id must be a valid id'),
-  body('kid.birth_weight_kg')
-    .notEmpty().withMessage('birth_weight_kg is required')
-    .isFloat({ min: 0 })
-    .withMessage('birth_weight_kg must be 0 or greater'),
+  body('kid.birth_weight_kg').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('birth_weight_kg must be 0 or greater'),
   body('kid.notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('kid notes is too long'),
+];
+
+const UpdateBirthValidator = [
+  body('birth_date').optional({ nullable: true }).isISO8601().withMessage('birth_date must be a valid date'),
+  body('notes').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('notes is too long'),
+  ...kidArrayRules(body),
 ];
 
 const AddKidValidator = [
@@ -90,6 +111,7 @@ export {
   ConfirmPregnancyValidator,
   ClosePregnancyValidator,
   CreateBirthValidator,
+  UpdateBirthValidator,
   AddKidValidator,
   UpdateKidValidator,
   RegisterKidValidator,

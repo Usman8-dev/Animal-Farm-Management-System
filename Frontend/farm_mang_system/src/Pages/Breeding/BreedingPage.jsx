@@ -2,11 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
-import { Dialog } from "primereact/dialog";
 import { Badge } from "primereact/badge";
 import { InputText } from "primereact/inputtext";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { HeartHandshake, CheckCircle2, Plus, Baby, Flag, Trash2, Search, FileDown } from "lucide-react";
+import { CheckCircle2, Plus, Baby, Pencil, Flag, Trash2, Search, FileDown } from "lucide-react";
 import api from "../../apis/axios";
 import {
   generateUpcomingDeliveriesPdf,
@@ -21,8 +20,6 @@ import {
   ConfirmPregnancyDialog,
   ClosePregnancyDialog,
   RecordBirthDialog,
-  AddKidDialog,
-  RegisterKidDialog,
 } from "./BreedingDialogs";
 
 const pageStyles = `
@@ -98,9 +95,8 @@ function BreedingPage() {
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [closeTarget, setCloseTarget] = useState(null);
   const [birthTarget, setBirthTarget] = useState(null);
-  const [kidTarget, setKidTarget] = useState(null);
-  const [birthDetail, setBirthDetail] = useState(null);
-  const [kidToRegister, setKidToRegister] = useState(null);
+  // Holds the saved birth (with its children) when the dialog edits an existing record.
+  const [birthEdit, setBirthEdit] = useState(null);
   const [saving, setSaving] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -208,93 +204,58 @@ const handleCreateService = async (payload) => {
     }
   };
 
-  const handleBirth = async (payload) => {
-    setSaving(true);
-    try {
-      await api.post("/breeding/api/births", { pregnancy_id: birthTarget.id, ...payload });
-      showToast({ severity: "success", summary: "Saved", detail: "Birth recorded." });
-      setBirthTarget(null);
-      await refreshAll();
-    } catch (err) {
-      showToast({ severity: "error", summary: "Save failed", detail: err.response?.data?.message || "Could not record birth" });
-    } finally {
-      setSaving(false);
-    }
+  const closeBirthDialog = () => {
+    setBirthTarget(null);
+    setBirthEdit(null);
   };
 
-  const openKids = async (row) => {
+  // Create mode for a pregnancy with no birth yet; edit mode (with every child
+  // preloaded) when that pregnancy already has a birth recorded.
+  const openBirth = async (row) => {
     if (!row.birth) {
-      showToast({ severity: "warn", summary: "No birth yet", detail: "Record a birth for this pregnancy first." });
+      setBirthEdit(null);
+      setBirthTarget(row);
       return;
     }
     try {
       const res = await api.get(`/breeding/api/births/${row.birth.id}`);
-      setBirthDetail(res.data.data);
+      setBirthEdit(res.data.data);
+      setBirthTarget(row);
     } catch (err) {
-      showToast({ severity: "error", summary: "Failed to load", detail: err.response?.data?.message || "Could not load birth details" });
+      showToast({
+        severity: "error",
+        summary: "Failed to load",
+        detail: err.response?.data?.message || "Could not load the birth record",
+      });
     }
   };
 
-  const handleAddKid = async (payload) => {
+  const handleBirth = async (payload) => {
     setSaving(true);
     try {
-      await api.post(`/breeding/api/births/${kidTarget.id}/kids`, payload);
-      showToast({ severity: "success", summary: "Added", detail: "Offspring registered." });
-      setKidTarget(null);
-      if (birthDetail) {
-        const res = await api.get(`/breeding/api/births/${birthDetail.id}`);
-        setBirthDetail(res.data.data);
+      if (birthEdit?.id) {
+        await api.put(`/breeding/api/births/${birthEdit.id}`, payload);
+      } else {
+        await api.post("/breeding/api/births", { pregnancy_id: birthTarget.id, ...payload });
       }
+      showToast({
+        severity: "success",
+        summary: "Saved",
+        detail: birthEdit ? "Birth record updated." : "Birth recorded.",
+      });
+      closeBirthDialog();
       await refreshAll();
+      // The children are farm animals now — refresh the animals list too.
+      if (canManage) await loadReferences();
     } catch (err) {
-      showToast({ severity: "error", summary: "Save failed", detail: err.response?.data?.message || "Could not add offspring" });
+      showToast({
+        severity: "error",
+        summary: "Save failed",
+        detail: err.response?.data?.message || "Could not save the birth record",
+      });
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleRegisterKid = async (payload) => {
-    setSaving(true);
-    try {
-      await api.post(`/breeding/api/birth-kids/${kidToRegister.id}/register-animal`, payload);
-      showToast({ severity: "success", summary: "Registered", detail: "Offspring registered as a new animal." });
-      setKidToRegister(null);
-      if (birthDetail) {
-        const res = await api.get(`/breeding/api/births/${birthDetail.id}`);
-        setBirthDetail(res.data.data);
-      }
-      await refreshAll();
-    } catch (err) {
-      showToast({ severity: "error", summary: "Save failed", detail: err.response?.data?.message || "Could not register animal" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const confirmDeleteKid = (kid) => {
-    confirmDialog({
-      message: `Delete this ${kid.is_stillborn ? "stillborn " : ""}offspring${kid.gender ? ` (${kid.gender})` : ""}? This can't be undone.`,
-      header: "Confirm deletion",
-      icon: "pi pi-exclamation-triangle",
-      acceptClassName: "!bg-[var(--danger)] !border-[var(--danger)]",
-      accept: async () => {
-        try {
-          await api.delete(`/breeding/api/birth-kids/${kid.id}`);
-          showToast({ severity: "success", summary: "Deleted", detail: "Offspring record removed." });
-          if (birthDetail) {
-            const res = await api.get(`/breeding/api/births/${birthDetail.id}`);
-            setBirthDetail(res.data.data);
-          }
-          await refreshAll();
-        } catch (err) {
-          showToast({
-            severity: "error",
-            summary: "Delete failed",
-            detail: err.response?.data?.message || "Could not delete this offspring",
-          });
-        }
-      },
-    });
   };
 
   const confirmDeletePregnancy = (row) => {
@@ -327,7 +288,10 @@ const handleCreateService = async (payload) => {
 
   const actionsBody = (row) => {
     const canConfirm = !row.outcome && !row.is_confirmed && canManage;
-    const canLifecycle = !row.outcome && canManage;
+    // The birth button stays available once a birth exists so that the record
+    // and its children can be edited later.
+    const canRecordBirth = canManage && (!!row.birth || !row.outcome);
+    const canClosePregnancy = !row.outcome && canManage;
     return (
       <div className="flex items-center gap-1">
         {canConfirm && (
@@ -340,34 +304,32 @@ const handleCreateService = async (payload) => {
             onClick={() => setConfirmTarget(row)}
           />
         )}
-        {canLifecycle && (
-          <>
-            <Button
-              title="Record birth"
-              icon={<Baby size={15} style={{ color: "var(--primary)" }} />}
-              size="small"
-              text
-              className="!h-8 !w-8 !rounded-lg !p-0"
-              onClick={() => setBirthTarget(row)}
-            />
-            <Button
-              title="Close pregnancy"
-              icon={<Flag size={15} style={{ color: "var(--text-muted)" }} />}
-              size="small"
-              text
-              className="!h-8 !w-8 !rounded-lg !p-0"
-              onClick={() => setCloseTarget(row)}
-            />
-          </>
+        {canRecordBirth && (
+          <Button
+            title={row.birth ? "Edit birth record" : "Record birth"}
+            icon={
+              row.birth ? (
+                <Pencil size={15} style={{ color: "var(--primary)" }} />
+              ) : (
+                <Baby size={15} style={{ color: "var(--primary)" }} />
+              )
+            }
+            size="small"
+            text
+            className="!h-8 !w-8 !rounded-lg !p-0"
+            onClick={() => openBirth(row)}
+          />
         )}
-        <Button
-          title="View offspring"
-          icon={<HeartHandshake size={15} style={{ color: "var(--info)" }} />}
-          size="small"
-          text
-          className="!h-8 !w-8 !rounded-lg !p-0"
-          onClick={() => openKids(row)}
-        />
+        {canClosePregnancy && (
+          <Button
+            title="Close pregnancy"
+            icon={<Flag size={15} style={{ color: "var(--text-muted)" }} />}
+            size="small"
+            text
+            className="!h-8 !w-8 !rounded-lg !p-0"
+            onClick={() => setCloseTarget(row)}
+          />
+        )}
         {canManage && (
           <span className="mx-0.5 h-5 w-px" style={{ backgroundColor: "var(--border)" }} />
         )}
@@ -414,10 +376,6 @@ const handleCreateService = async (payload) => {
     downloadPdf("birth", "/breeding/api/reports/breeding/birth-outcomes", generateBirthOutcomesPdf, "birth-outcomes", "Birth outcomes PDF downloaded.");
   const handleMaturityPdf = () =>
     downloadPdf("maturity", "/breeding/api/reports/breeding/maturity-alerts", generateMaturityAlertsPdf, "maturity-alerts", "Maturity alerts PDF downloaded.");
-
-  const birthSurvival = birthOutcomes?.total_kids
-    ? Math.round((birthOutcomes.live_kids / birthOutcomes.total_kids) * 100)
-    : 0;
 
   return (
     <div className="font-sans">
@@ -584,106 +542,19 @@ const handleCreateService = async (payload) => {
 
       <RecordBirthDialog
         open={!!birthTarget}
-        onHide={() => setBirthTarget(null)}
+        onHide={closeBirthDialog}
         saving={saving}
         animalTypes={animalTypes}
         breeds={breeds}
         genders={genders}
         animals={animals}
         pregnancy={birthTarget}
+        birth={birthEdit}
         onSubmitForm={handleBirth}
       />
 
-      <AddKidDialog
-        open={!!kidTarget}
-        onHide={() => setKidTarget(null)}
-        saving={saving}
-        genders={genders}
-        onSubmitForm={handleAddKid}
-      />
-
-      <RegisterKidDialog
-        open={!!kidToRegister}
-        onHide={() => setKidToRegister(null)}
-        saving={saving}
-        genders={genders}
-        onSubmitForm={handleRegisterKid}
-      />
-
-      {/* Birth detail → kids */}
-      <Dialog
-        header="Birth Details"
-        visible={!!birthDetail}
-        onHide={() => setBirthDetail(null)}
-        style={{ width: "34rem" }}
-        className="br-dialog"
-      >
-        {birthDetail && (
-          <div className="flex flex-col gap-4 pt-1">
-            <div className="rounded-lg p-3 text-sm" style={{ backgroundColor: "var(--bg-muted)" }}>
-              <p><strong>Female:</strong> {birthDetail.pregnancy?.dam?.tag_number}</p>
-              <p><strong>Male:</strong> {birthDetail.pregnancy?.sire?.tag_number || birthDetail.pregnancy?.sire_ref || "—"}</p>
-              <p><strong>Birth date:</strong> {fmtDate(birthDetail.birth_date)}</p>
-              {birthDetail.notes && <p><strong>Notes:</strong> {birthDetail.notes}</p>}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
-                Offspring ({birthDetail.kids?.length || 0})
-              </p>
-              {canManage && (
-                <Button
-                  label="Add Offspring"
-                  icon={<Plus size={14} className="mr-1" />}
-                  size="small"
-                  onClick={() => setKidTarget(birthDetail)}
-                />
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {(birthDetail.kids || []).map((k) => (
-                <div
-                  key={k.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                  style={{ borderColor: "var(--border)" }}
-                >
-                  <div className="text-sm">
-                    <span className="font-semibold">{k.gender || "Offspring"}</span>
-                    {k.is_stillborn && <Badge value="Stillborn" severity="danger" className="ml-2" />}
-                    <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      {k.birth_weight_kg != null ? `${k.birth_weight_kg} kg` : "weight n/a"}
-                    </div>
-                    {k.animal && (
-                      <div className="text-xs" style={{ color: "var(--primary)" }}>
-                        Registered: {k.animal.tag_number}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {canManage && !k.animal &&
-                      <Button
-                        label="Delete"
-                        icon={<Trash2 size={14} className="mr-1" />}
-                        size="small"
-                        severity="danger"
-                        text
-                        onClick={() => confirmDeleteKid(k)}
-                      />
-                    }
-                    {canManage && !k.animal && !k.is_stillborn && (
-                      <Button label="Register Animal" size="small" onClick={() => setKidToRegister(k)} />
-                    )}
-                  </div>
-                </div>
-              ))}
-              {(!birthDetail.kids || birthDetail.kids.length === 0) && (
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>No offspring recorded yet.</p>
-              )}
-            </div>
-          </div>
-        )}
-      </Dialog>
+      {/* Birth records (and their children) are viewed and edited through the
+          Record Birth dialog, which is also the entry point for corrections. */}
 
 
               {/* Reports / PDF downloads — same style as the Weight & Valuation "Reports" card */}
