@@ -241,6 +241,11 @@ model Animal {
 
   acquisition_type  AcquisitionType
   acquired_on       DateTime?
+
+  // Only meaningful when acquisition_type = PURCHASED — required in that case,
+  // always NULL for animals born in the farm.
+  purchase_price    Decimal?        @db.Decimal(12, 2)
+
   notes             String?
 
   // Marks this animal as an active breeder (used by breeding workflows)

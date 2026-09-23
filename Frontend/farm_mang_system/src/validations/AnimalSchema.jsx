@@ -32,6 +32,21 @@ export const AnimalSchema = yup.object().shape({
 
   acquired_on: yup.date().nullable(),
 
+  // Only applicable to PURCHASED animals — required in that case.
+  purchase_price: yup
+    .number()
+    .nullable()
+    .transform((v, orig) => (orig === "" || orig === undefined ? null : v))
+    .when("acquisition_type", {
+      is: "PURCHASED",
+      then: (schema) =>
+        schema
+          .typeError("Enter the purchase price")
+          .required("Purchase price is required")
+          .min(0, "Purchase price cannot be negative")
+          .max(9999999999.99, "Price cannot exceed 10 digits"), 
+    }),
+
   mother_id: yup
     .number()
     .nullable()

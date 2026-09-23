@@ -583,6 +583,21 @@ function AnimalDetail() {
                     ? new Date(animal.acquired_on).toLocaleDateString()
                     : null,
                 },
+                // Only bought animals carry a purchase price
+                ...(animal.acquisition_type === "PURCHASED"
+                  ? [
+                      {
+                        label: "Purchase Price",
+                        value:
+                          animal.purchase_price == null
+                            ? null
+                            : `Rs. ${Number(animal.purchase_price).toLocaleString(
+                                undefined,
+                                { maximumFractionDigits: 2 }
+                              )}`,
+                      },
+                    ]
+                  : []),
               ].map((item) => (
                 <div
                   key={item.label}

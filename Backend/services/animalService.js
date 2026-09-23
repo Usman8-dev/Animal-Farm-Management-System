@@ -89,9 +89,29 @@ async function assertUniqueTagNumber({ farm_id, tag_number, excludeAnimalId = nu
   }
 }
 
+/**
+ * Business rule: the purchase price is required for PURCHASED animals and is
+ * always cleared for animals born in the farm. Returns the value to persist.
+ */
+function normalizePurchasePrice({ acquisition_type, purchase_price }) {
+  if (acquisition_type !== 'PURCHASED') return null;
+
+  if (purchase_price === null || purchase_price === undefined || purchase_price === '') {
+    throw new AppError('purchase_price is required for purchased animals', 422);
+  }
+
+  const value = Number(purchase_price);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new AppError('purchase_price must be a positive number', 422);
+  }
+
+  return value;
+}
+
 export const AnimalService = {
   AppError,
   validateLineage,
   validateClassification,
   assertUniqueTagNumber,
+  normalizePurchasePrice,
 };

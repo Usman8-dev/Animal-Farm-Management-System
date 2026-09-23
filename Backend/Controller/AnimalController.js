@@ -1,7 +1,7 @@
 import prisma from '../prisma/client.js';
 import { AnimalService } from '../services/animalService.js';
 
-const { AppError, validateLineage, validateClassification, assertUniqueTagNumber } = AnimalService;
+const { AppError, validateLineage, validateClassification, assertUniqueTagNumber, normalizePurchasePrice } = AnimalService;
 
 // Shared "include" shape so list/detail responses stay consistent
 const animalInclude = {
@@ -111,6 +111,7 @@ const CreateAnimal = async (req, res) => {
       birth_date,
       acquisition_type,
       acquired_on,
+      purchase_price,
       mother_id,
       father_id,
       notes,
@@ -130,6 +131,10 @@ const CreateAnimal = async (req, res) => {
       father_id: father_id ? Number(father_id) : null,
     });
 
+    // Purchase price is required for PURCHASED animals and always NULL for
+    // animals born in the farm.
+    const purchasePrice = normalizePurchasePrice({ acquisition_type, purchase_price });
+
     await assertUniqueTagNumber({ farm_id: farmId, tag_number });
 
     const animal = await prisma.animal.create({
@@ -143,6 +148,7 @@ const CreateAnimal = async (req, res) => {
         birth_date: birth_date ? new Date(birth_date) : null,
         acquisition_type,
         acquired_on: acquired_on ? new Date(acquired_on) : null,
+        purchase_price: purchasePrice,
         mother_id: mother_id ? Number(mother_id) : null,
         father_id: father_id ? Number(father_id) : null,
         notes,
@@ -186,6 +192,7 @@ const UpdateAnimal = async (req, res) => {
       birth_date,
       acquisition_type,
       acquired_on,
+      purchase_price,
       mother_id,
       father_id,
       notes,
@@ -202,6 +209,15 @@ const UpdateAnimal = async (req, res) => {
     }
 
     const effectiveAcquisitionType = acquisition_type ?? existing.acquisition_type;
+
+    // Keeps the stored price when the field is omitted, so switching an animal
+    // to BORN_IN_FARM always clears it.
+    const purchasePrice = normalizePurchasePrice({
+      acquisition_type: effectiveAcquisitionType,
+      purchase_price:
+        purchase_price !== undefined ? purchase_price : existing.purchase_price,
+    });
+
     await validateLineage({
       farm_id: farmId,
       acquisition_type: effectiveAcquisitionType,
@@ -225,6 +241,7 @@ const UpdateAnimal = async (req, res) => {
         birth_date: birth_date ? new Date(birth_date) : undefined,
         acquisition_type,
         acquired_on: acquired_on ? new Date(acquired_on) : undefined,
+        purchase_price: purchasePrice,
         mother_id: mother_id !== undefined ? (mother_id ? Number(mother_id) : null) : undefined,
         father_id: father_id !== undefined ? (father_id ? Number(father_id) : null) : undefined,
         notes,

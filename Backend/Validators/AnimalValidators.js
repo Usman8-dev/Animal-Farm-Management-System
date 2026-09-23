@@ -101,6 +101,12 @@ export const AnimalValidator = [
     .optional({ checkFalsy: true })
     .isISO8601().withMessage('acquired_on must be a valid date'),
 
+  // Presence is enforced in the service (required only when
+  // acquisition_type = PURCHASED, since updates may omit the field).
+  body('purchase_price')
+    .optional({ checkFalsy: true })
+    .isFloat({ min: 0 }).withMessage('purchase_price must be a positive number'),
+
   body('mother_id')
     .optional({ checkFalsy: true })
     .isInt({ min: 1 }).withMessage('mother_id must be a valid id'),

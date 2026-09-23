@@ -3,6 +3,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm, Controller } from "react-hook-form";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
+import { InputNumber } from "primereact/inputnumber";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { InputTextarea } from "primereact/inputtextarea";
@@ -23,6 +24,7 @@ const EMPTY_VALUES = {
   birth_date: null,
   acquisition_type: "BORN_IN_FARM",
   acquired_on: null,
+  purchase_price: null,
   mother_id: null,
   father_id: null,
   notes: "",
@@ -77,6 +79,11 @@ function AnimalFormDialog({
         acquired_on: editingAnimal.acquired_on
           ? new Date(editingAnimal.acquired_on)
           : null,
+        // Prisma returns Decimal columns as strings — normalise for the input
+        purchase_price:
+          editingAnimal.purchase_price != null
+            ? Number(editingAnimal.purchase_price)
+            : null,
         mother_id: editingAnimal.mother_id,
         father_id: editingAnimal.father_id,
         notes: editingAnimal.notes || "",
@@ -121,6 +128,9 @@ function AnimalFormDialog({
       ...data,
       birth_date: data.birth_date ? data.birth_date.toISOString() : null,
       acquired_on: data.acquired_on ? data.acquired_on.toISOString() : null,
+      // Never persist a price for animals born in the farm
+      purchase_price:
+        data.acquisition_type === "PURCHASED" ? data.purchase_price : null,
       mother_id: data.acquisition_type === "PURCHASED" ? null : data.mother_id,
       father_id: data.acquisition_type === "PURCHASED" ? null : data.father_id,
     };
@@ -381,24 +391,54 @@ function AnimalFormDialog({
         </div>
 
         {watchedAcquisition === "PURCHASED" ? (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[0.8rem] font-semibold" style={labelStyle}>
-              Acquired On
-            </label>
-            <Controller
-              name="acquired_on"
-              control={control}
-              render={({ field }) => (
-                <Calendar
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.value)}
-                  dateFormat="yy-mm-dd"
-                  maxDate={new Date()}
-                  showIcon
-                  placeholder="Select date"
-                />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+                Purchase Price (Rs.)
+              </label>
+              <Controller
+                name="purchase_price"
+                control={control}
+                render={({ field }) => (
+                  <InputNumber
+                    value={field.value}
+                    onValueChange={(e) => field.onChange(e.value)}
+                    min={0}
+                    minFractionDigits={0}
+                    maxFractionDigits={2}
+                    placeholder="e.g. 150000"
+                    className="w-full"
+                    inputClassName={`field-input w-full rounded-lg px-3 py-2.5 text-sm ${
+                      errors.purchase_price ? "field-invalid" : ""
+                    }`}
+                  />
+                )}
+              />
+              {errors.purchase_price && (
+                <small className="text-xs" style={errorStyle}>
+                  {errors.purchase_price.message}
+                </small>
               )}
-            />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[0.8rem] font-semibold" style={labelStyle}>
+                Acquired On
+              </label>
+              <Controller
+                name="acquired_on"
+                control={control}
+                render={({ field }) => (
+                  <Calendar
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.value)}
+                    dateFormat="yy-mm-dd"
+                    maxDate={new Date()}
+                    showIcon
+                    placeholder="Select date"
+                  />
+                )}
+              />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
