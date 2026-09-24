@@ -216,10 +216,38 @@ function AnimalFormDialog({
           background: var(--bg-muted);
           color: var(--text);
         }
-        .animal-form-dialog .p-datepicker {
+        /* Calendar panels are appended to <body> (PrimeReact default), so they
+           must be themed by their own panelClassName, not by .animal-form-dialog. */
+        .animal-form-datepicker.p-datepicker {
           background: var(--bg-card);
-          border-color: var(--border);
+          border: 1px solid var(--border);
+          border-radius: 0.6rem;
           color: var(--text);
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+        }
+        .animal-form-datepicker .p-datepicker-header {
+          background: var(--bg-card);
+          color: var(--text-heading);
+          border-bottom: 1px solid var(--border);
+        }
+        .animal-form-datepicker .p-datepicker-header .p-datepicker-title {
+          color: var(--text-heading);
+        }
+        .animal-form-datepicker table th,
+        .animal-form-datepicker table td > span {
+          color: var(--text);
+        }
+        .animal-form-datepicker table td > span.p-highlight {
+          background: var(--primary);
+          color: #fff;
+        }
+        .animal-form-datepicker table td > span:not(.p-disabled):hover {
+          background: var(--bg-muted);
+          color: var(--text);
+        }
+        .animal-form-datepicker .p-datepicker-prev,
+        .animal-form-datepicker .p-datepicker-next {
+          color: var(--text-muted);
         }
       `}</style>
 
@@ -354,6 +382,7 @@ function AnimalFormDialog({
                   maxDate={new Date()}
                   showIcon
                   placeholder="Select date"
+                  panelClassName="animal-form-datepicker"
                 />
               )}
             />
@@ -435,6 +464,7 @@ function AnimalFormDialog({
                     maxDate={new Date()}
                     showIcon
                     placeholder="Select date"
+                    panelClassName="animal-form-datepicker"
                   />
                 )}
               />

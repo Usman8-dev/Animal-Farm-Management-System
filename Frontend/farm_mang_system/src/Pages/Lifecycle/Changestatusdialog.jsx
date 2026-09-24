@@ -148,26 +148,42 @@ function ChangeStatusDialog({
           color: var(--text) !important;
         }
 
-        .change-status-dialog .p-datepicker {
+        /* The calendar panel is appended to <body> so the dialog's scrollable
+           content can't clip it — hence this scope instead of .change-status-dialog. */
+        .cs-datepicker-panel.p-datepicker {
           background: var(--bg-card) !important;
-          border-color: var(--border) !important;
+          border: 1px solid var(--border) !important;
+          border-radius: 0.6rem !important;
           color: var(--text) !important;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22) !important;
         }
-        .change-status-dialog .p-datepicker-header {
+        .cs-datepicker-panel .p-datepicker-header {
           background: var(--bg-card) !important;
-          color: var(--text) !important;
-          border-color: var(--border) !important;
+          color: var(--text-heading) !important;
+          border-bottom: 1px solid var(--border) !important;
         }
-        .change-status-dialog .p-datepicker table td > span {
+        .cs-datepicker-panel .p-datepicker-header .p-datepicker-title {
+          color: var(--text-heading) !important;
+        }
+        .cs-datepicker-panel table th,
+        .cs-datepicker-panel table td > span {
           color: var(--text) !important;
         }
-        .change-status-dialog .p-datepicker table td > span.p-highlight {
+        .cs-datepicker-panel table td > span.p-highlight {
           background: var(--primary) !important;
           color: #fff !important;
         }
-        .change-status-dialog .p-datepicker-prev,
-        .change-status-dialog .p-datepicker-next {
+        .cs-datepicker-panel table td > span:not(.p-disabled):hover {
+          background: var(--bg-muted) !important;
+          color: var(--text) !important;
+        }
+        .cs-datepicker-panel .p-datepicker-prev,
+        .cs-datepicker-panel .p-datepicker-next {
           color: var(--text-muted) !important;
+        }
+        .cs-datepicker-panel .p-datepicker-buttonbar,
+        .cs-datepicker-panel .p-timepicker {
+          border-top: 1px solid var(--border) !important;
         }
 
         .change-status-dialog .cs-submit.p-button {
@@ -220,7 +236,8 @@ function ChangeStatusDialog({
                 dateFormat="yy-mm-dd"
                 showIcon
                 className="w-full"
-                appendTo="self"
+                panelClassName="cs-datepicker-panel"
+                appendTo={document.body}
               />
             )}
           />
