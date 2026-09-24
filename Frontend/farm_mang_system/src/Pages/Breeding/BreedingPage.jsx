@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { Badge } from "primereact/badge";
 import { InputText } from "primereact/inputtext";
+import { Menu } from "primereact/menu";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { CheckCircle2, Plus, Baby, Pencil, Flag, Trash2, Search, FileDown } from "lucide-react";
 import api from "../../apis/axios";
@@ -61,6 +62,12 @@ const pageStyles = `
   .p-datepicker table td > span:not(.p-disabled):hover { background: var(--bg-muted) !important; color: var(--text) !important; }
   .p-datepicker .p-datepicker-buttonbar { border-top: 1px solid var(--border) !important; }
   .p-datepicker .p-timepicker { border-top: 1px solid var(--border) !important; }
+  /* Row edit popup menu (parent vs children) — match dark/light theme */
+  .p-menu { background: var(--bg-card) !important; border: 1px solid var(--border) !important; border-radius: 0.6rem; min-width: 15rem; padding: 0.35rem; }
+  .p-menu .p-menuitem-link { color: var(--text) !important; border-radius: 0.4rem; }
+  .p-menu .p-menuitem-link:hover, .p-menu .p-menuitem-link:focus { background: var(--bg-muted) !important; color: var(--text) !important; }
+  .p-menu .p-menuitem-icon { color: var(--primary) !important; margin-right: 0.55rem; }
+  .p-menu .p-separator { border-color: var(--border) !important; margin: 0.25rem 0; }
 `;
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : "—");
@@ -97,6 +104,10 @@ function BreedingPage() {
   const [birthTarget, setBirthTarget] = useState(null);
   // Holds the saved birth (with its children) when the dialog edits an existing record.
   const [birthEdit, setBirthEdit] = useState(null);
+  // Pregnancy row whose parent / service side is being edited (RecordServiceDialog).
+  const [serviceEdit, setServiceEdit] = useState(null);
+  // Per-row popup edit menus, keyed by pregnancy id.
+  const editMenuRefs = useRef({});
   const [saving, setSaving] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -162,15 +173,24 @@ function BreedingPage() {
     if (canManage) loadReferences();
   }, [loadPregnancies, loadReports, loadReferences, canManage]);
 
-const handleCreateService = async (payload) => {
+// Create mode (Record Service button) vs update mode (row edit menu →
+// "Edit service details"). The backend PUT ignores dam_id, so the dialog locks
+// the female dropdown when editing.
+const handleService = async (payload) => {
     setSaving(true);
     try {
-      await api.post("/breeding/api/pregnancies", payload);
-      showToast({ severity: "success", summary: "Saved", detail: "Service recorded." });
-      setServiceOpen(false);
+      if (serviceEdit) {
+        await api.put(`/breeding/api/pregnancies/${serviceEdit.id}`, payload);
+        showToast({ severity: "success", summary: "Saved", detail: "Service details updated." });
+        setServiceEdit(null);
+      } else {
+        await api.post("/breeding/api/pregnancies", payload);
+        showToast({ severity: "success", summary: "Saved", detail: "Service recorded." });
+        setServiceOpen(false);
+      }
       await refreshAll();
     } catch (err) {
-      showToast({ severity: "error", summary: "Save failed", detail: err.response?.data?.message || "Could not record service" });
+      showToast({ severity: "error", summary: "Save failed", detail: err.response?.data?.message || "Could not save service details" });
     } finally {
       setSaving(false);
     }
@@ -288,10 +308,31 @@ const handleCreateService = async (payload) => {
 
   const actionsBody = (row) => {
     const canConfirm = !row.outcome && !row.is_confirmed && canManage;
-    // The birth button stays available once a birth exists so that the record
+    // The birth option stays available once a birth exists so that the record
     // and its children can be edited later.
     const canRecordBirth = canManage && (!!row.birth || !row.outcome);
     const canClosePregnancy = !row.outcome && canManage;
+
+    // One edit menu per row — the labels spell out whether an entry changes the
+    // parent (service) side or the children (birth) side of this record.
+    const editItems = [
+      {
+        label: "Edit service details (parent)",
+        icon: <Pencil size={15} />,
+        command: () => setServiceEdit(row),
+      },
+    ];
+    if (canRecordBirth) {
+      editItems.push(
+        { separator: true },
+        {
+          label: row.birth ? "Edit birth record (children)" : "Record birth (children)",
+          icon: <Baby size={15} />,
+          command: () => openBirth(row),
+        }
+      );
+    }
+
     return (
       <div className="flex items-center gap-1">
         {canConfirm && (
@@ -304,22 +345,24 @@ const handleCreateService = async (payload) => {
             onClick={() => setConfirmTarget(row)}
           />
         )}
-        {canRecordBirth && (
+        {canManage && (
           <Button
-            title={row.birth ? "Edit birth record" : "Record birth"}
-            icon={
-              row.birth ? (
-                <Pencil size={15} style={{ color: "var(--primary)" }} />
-              ) : (
-                <Baby size={15} style={{ color: "var(--primary)" }} />
-              )
-            }
+            title="Edit record (parent / children)"
+            icon={<Pencil size={15} style={{ color: "var(--primary)" }} />}
             size="small"
             text
             className="!h-8 !w-8 !rounded-lg !p-0"
-            onClick={() => openBirth(row)}
+            onClick={(e) => editMenuRefs.current[row.id]?.toggle(e)}
           />
         )}
+        <Menu
+          model={editItems}
+          popup
+          appendTo={document.body}
+          ref={(el) => {
+            editMenuRefs.current[row.id] = el;
+          }}
+        />
         {canClosePregnancy && (
           <Button
             title="Close pregnancy"
@@ -519,11 +562,15 @@ const handleCreateService = async (payload) => {
       </DataTable>
 
 <RecordServiceDialog
-        open={serviceOpen}
-        onHide={() => setServiceOpen(false)}
+        open={serviceOpen || !!serviceEdit}
+        onHide={() => {
+          setServiceOpen(false);
+          setServiceEdit(null);
+        }}
         saving={saving}
         animals={animals}
-        onSubmitForm={handleCreateService}
+        record={serviceEdit}
+        onSubmitForm={handleService}
       />
 
       <ConfirmPregnancyDialog
@@ -553,8 +600,10 @@ const handleCreateService = async (payload) => {
         onSubmitForm={handleBirth}
       />
 
-      {/* Birth records (and their children) are viewed and edited through the
-          Record Birth dialog, which is also the entry point for corrections. */}
+      {/* The row's edit menu splits this record in two: "Edit service details
+          (parent)" opens RecordServiceDialog in edit mode above, while the
+          birth/children entry opens RecordBirthDialog (which also loads every
+          child for editing). */}
 
 
               {/* Reports / PDF downloads — same style as the Weight & Valuation "Reports" card */}

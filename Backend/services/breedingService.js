@@ -723,9 +723,9 @@ async function registerKid({ farmId, kidId, payload, personId }) {
   });
   if (!gender) throw new AppError('gender_id is invalid on this farm', 422);
 
-  // Animal Type and Breed follow the father (Male); fall back to the mother
-  // when the pregnancy has no registered sire (e.g. external reference only).
-  const typeSource = sire ?? dam;
+  // Animal Type and Breed follow the mother (dam); fall back to the father
+  // only when the pregnancy somehow has no dam (defensive — dam is required).
+  const typeSource = dam ?? sire;
   const newAnimal = await prisma.animal.create({
     data: {
       farm_id: farmId,

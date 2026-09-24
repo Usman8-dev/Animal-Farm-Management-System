@@ -44,7 +44,13 @@ const animalOption = (a) => ({
   label: `${a.tag_number}${a.name ? ` — ${a.name}` : ""}`,
 });
 
-export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitForm }) {
+// `record` (a pregnancy row) switches this dialog into edit mode for the parent
+// / service side of the record — the children are edited in RecordBirthDialog.
+export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitForm, record }) {
+  const editing = !!record;
+  // Once the pregnancy is closed the backend only allows updating notes.
+  const closed = editing && !!record.outcome;
+
   const { control, register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     resolver: yupResolver(PregnancyServiceSchema),
     defaultValues: { dam_id: null, sire_id: null, sire_ref: "", service_date: new Date(), notes: "" },
@@ -52,8 +58,18 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
 
   useEffect(() => {
     if (!open) return;
+    if (record) {
+      reset({
+        dam_id: record.dam?.id ?? null,
+        sire_id: record.sire?.id ?? null,
+        sire_ref: record.sire_ref || "",
+        service_date: record.service_date ? new Date(record.service_date) : new Date(),
+        notes: record.notes || "",
+      });
+      return;
+    }
     reset({ dam_id: null, sire_id: null, sire_ref: "", service_date: new Date(), notes: "" });
-  }, [open, reset]);
+  }, [open, reset, record]);
 
   const sireId = watch("sire_id");
 
@@ -65,7 +81,7 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
     .map(animalOption);
 
   return (
-    <Dialog header="Record Service / Mating" visible={open} onHide={onHide} style={{ width: "30rem" }} className="br-dialog">
+    <Dialog header={editing ? "Edit Service Details (Parent)" : "Record Service / Mating"} visible={open} onHide={onHide} style={{ width: "30rem" }} className="br-dialog">
       <style>{dialogStyles}</style>
       <form
         onSubmit={handleSubmit((d) =>
@@ -82,39 +98,46 @@ export function RecordServiceDialog({ open, onHide, saving, animals, onSubmitFor
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Female Animal</label>
           <Controller name="dam_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="label" optionValue="id" filter placeholder="Select female animal" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={damOptions} optionLabel="label" optionValue="id" filter placeholder="Select female animal" disabled={editing} />
           )} />
           {errors.dam_id && <small className="err text-xs">{errors.dam_id.message}</small>}
+          {editing && <p className="text-xs" style={{ color: "var(--text-muted)" }}>The female can't be changed after the service is recorded.</p>}
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Male Animal</label>
           <Controller name="sire_id" control={control} render={({ field }) => (
-            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a male breeder" />
+            <Dropdown value={field.value} onChange={(e) => field.onChange(e.value)} options={sireOptions} optionLabel="label" optionValue="id" filter showClear placeholder="Select a male breeder" disabled={closed} />
           )} />
         </div>
 
         {!sireId && (
           <div className="flex flex-col gap-1.5">
             <label className="text-[0.8rem] font-semibold">Male Animal reference / external</label>
-            <InputText {...register("sire_ref")} placeholder="e.g. AI semen KAZ-118" className="w-full" />
+            <InputText disabled={closed} {...register("sire_ref")} placeholder="e.g. AI semen KAZ-118" className="w-full" />
           </div>
         )}
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Service date</label>
           <Controller name="service_date" control={control} render={({ field }) => (
-            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} />
+            <Calendar value={field.value} onChange={(e) => field.onChange(e.value)} dateFormat="yy-mm-dd" showIcon className="w-full" appendTo={document.body} disabled={closed} />
           )} />
           {errors.service_date && <p className="err text-xs">{errors.service_date.message}</p>}
         </div>
+
+        {closed && (
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            This pregnancy is closed — the male and service date are locked; only notes can be updated.
+          </p>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[0.8rem] font-semibold">Notes (optional)</label>
           <InputTextarea rows={2} {...register("notes")} className="w-full" />
         </div>
 
-        <Button type="submit" label={saving ? "Saving…" : "Save Service"} loading={saving} className="!w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold" />
+        <Button type="submit" label={saving ? "Saving…" : editing ? "Save Changes" : "Save Service"} loading={saving} className="!w-full !justify-center !rounded-lg !py-2.5 !text-sm !font-semibold" />
       </form>
     </Dialog>
   );
@@ -193,17 +216,17 @@ export function ClosePregnancyDialog({ open, onHide, saving, onSubmitForm }) {
 // Dropdown options shared by the birth dialog.
 const mapOptions = (list) => (list || []).map((x) => ({ label: x.name, value: x.id }));
 
-// A blank child row. Animal Type & Breed follow the father (sire) — prefer the
+// A blank child row. Animal Type & Breed follow the mother (dam) — prefer the
 // values carried on the pregnancy row, fall back to the animals list.
 function blankKid(pregnancy, animals) {
-  const sire = (animals || []).find((a) => a.id === pregnancy?.sire?.id);
+  const dam = (animals || []).find((a) => a.id === pregnancy?.dam?.id);
   return {
     id: null,
     stillborn: false,
     tag_number: "",
     name: "",
-    animal_type_id: pregnancy?.sire?.animal_type_id ?? sire?.animal_type_id ?? null,
-    breed_id: pregnancy?.sire?.breed_id ?? sire?.breed_id ?? null,
+    animal_type_id: pregnancy?.dam?.animal_type_id ?? dam?.animal_type_id ?? null,
+    breed_id: pregnancy?.dam?.breed_id ?? dam?.breed_id ?? null,
     gender_id: null,
     gender: "",
     birth_weight_kg: null,
@@ -285,7 +308,7 @@ export function RecordBirthDialog({
 
   return (
     <Dialog
-      header={editing ? "Edit Birth Record" : "Record Birth"}
+      header={editing ? "Edit Birth Record (Children)" : "Record Birth (Children)"}
       visible={open}
       onHide={onHide}
       style={{ width: "44rem" }}
