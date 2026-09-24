@@ -61,8 +61,8 @@ import { ThemeProvider } from "./context/ThemeContext";
 import TeamList from "./Pages/Team/TeamList";
 import StaffDashboard from "./Pages/Dashboard/StaffDashboard";
 import AnimalStatusesTab from "./Pages/Lifecycle/Animalstatusestab";
-import ChangeStatusDialog from "./Pages/Lifecycle/Changestatusdialog";
 import WeightValuationPage from "./Pages/Weight/WeightValuationPage";
+import WeightValuationDetailPage from "./Pages/Weight/WeightValuationDetailPage";
 import BreedingPage from "./Pages/Breeding/BreedingPage";
 import VaccinationPage from "./Pages/Vaccination/VaccinationPage";
 function App() {
@@ -104,6 +104,7 @@ function App() {
 
                     {/* Module 3 — Weight & Valuation */}
                     <Route path="/weight" element={<WeightValuationPage />} />
+                    <Route path="/weight/animals/:id" element={<WeightValuationDetailPage />} />
 
                     {/* Module 4 — Breeding & Reproduction */}
                     <Route path="/breeding" element={<BreedingPage />} />

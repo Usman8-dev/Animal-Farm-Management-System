@@ -28,9 +28,31 @@ const dialogStyles = `
   .wv-dialog .p-button {
     background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important;
   }
+
+  /* Calendar panels are appended to <body> so the dialog can never clip them. */
+  .wv-datepicker-panel.p-datepicker {
+    background: var(--bg-card) !important; border: 1px solid var(--border) !important;
+    border-radius: 0.6rem !important; color: var(--text) !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22) !important;
+  }
+  .wv-datepicker-panel .p-datepicker-header {
+    background: var(--bg-card) !important; color: var(--text-heading) !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  .wv-datepicker-panel .p-datepicker-title { color: var(--text-heading) !important; }
+  .wv-datepicker-panel table th,
+  .wv-datepicker-panel table td > span { color: var(--text) !important; }
+  .wv-datepicker-panel table td > span.p-highlight {
+    background: var(--primary) !important; color: #fff !important;
+  }
+  .wv-datepicker-panel table td > span:not(.p-disabled):hover {
+    background: var(--bg-muted) !important; color: var(--text) !important;
+  }
+  .wv-datepicker-panel .p-datepicker-prev,
+  .wv-datepicker-panel .p-datepicker-next { color: var(--text-muted) !important; }
 `;
 
-export function LogWeightDialog({ visible, onHide, saving, initial, onSubmitForm }) {
+export function LogWeightDialog({ visible, onHide, saving, initial, onSubmitForm, animalLabel }) {
   const {
     control,
     register,
@@ -77,6 +99,11 @@ export function LogWeightDialog({ visible, onHide, saving, initial, onSubmitForm
       className="wv-dialog"
     >
       <style>{dialogStyles}</style>
+      {animalLabel && (
+        <p className="mb-3 text-sm" style={{ color: "var(--text-muted)" }}>
+          Recording for <strong style={{ color: "var(--text)" }}>{animalLabel}</strong>
+        </p>
+      )}
       <form
         onSubmit={handleSubmit((data) =>
           onSubmitForm({
@@ -123,7 +150,8 @@ export function LogWeightDialog({ visible, onHide, saving, initial, onSubmitForm
                 dateFormat="yy-mm-dd"
                 showIcon
                 className="w-full"
-                appendTo="self"
+                panelClassName="wv-datepicker-panel"
+                appendTo={document.body}
               />
             )}
           />
@@ -157,7 +185,7 @@ export function LogWeightDialog({ visible, onHide, saving, initial, onSubmitForm
   );
 }
 
-export function LogValuationDialog({ visible, onHide, saving, initial, onSubmitForm }) {
+export function LogValuationDialog({ visible, onHide, saving, initial, onSubmitForm, animalLabel }) {
   const {
     control,
     register,
@@ -204,6 +232,11 @@ export function LogValuationDialog({ visible, onHide, saving, initial, onSubmitF
       className="wv-dialog"
     >
       <style>{dialogStyles}</style>
+      {animalLabel && (
+        <p className="mb-3 text-sm" style={{ color: "var(--text-muted)" }}>
+          Recording for <strong style={{ color: "var(--text)" }}>{animalLabel}</strong>
+        </p>
+      )}
       <form
         onSubmit={handleSubmit((data) =>
           onSubmitForm({
@@ -259,7 +292,8 @@ export function LogValuationDialog({ visible, onHide, saving, initial, onSubmitF
                 dateFormat="yy-mm-dd"
                 showIcon
                 className="w-full"
-                appendTo="self"
+                panelClassName="wv-datepicker-panel"
+                appendTo={document.body}
               />
             )}
           />
