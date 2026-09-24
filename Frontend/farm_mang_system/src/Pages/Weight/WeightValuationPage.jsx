@@ -448,80 +448,9 @@ function WeightValuationPage() {
         </div>
       </div>
 
-      {/* Progress charts — always visible */}
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div
-          className="rounded-xl border p-4"
-          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
-        >
-          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
-            Latest Weight by Animal (kg)
-          </p>
-          <BarChart
-            data={weightChartData}
-            color="var(--primary)"
-            formatter={(v) => `${formatNumber(v, 1)} kg`}
-          />
-        </div>
-
-        {canOwner && (
-        <div
-          className="rounded-xl border p-4"
-          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
-        >
-          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
-            Latest Valuation by Animal (Rs.)
-          </p>
-          <BarChart
-            data={valuationChartData}
-            color="var(--primary-hover)"
-            formatter={(v) => `Rs. ${formatNumber(v, 0)}`}
-          />
-        </div>
-        )}
-      </div>
-
-      {/* Reports / PDF downloads */}
-      <div className="mb-6 rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
-        <div className="mb-1 flex items-center gap-2">
-          <FileDown size={18} style={{ color: "var(--primary)" }} />
-          <h2 className="font-display text-lg font-semibold" style={{ color: "var(--text-heading)" }}>
-            Reports
-          </h2>
-        </div>
-        <p className="mb-4 text-sm" style={{ color: "var(--text-muted)" }}>
-          Generate a beautiful PDF for each farm report.
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {/* Growth Trend is per animal, so it moved to the animal's history page —
-              open it by clicking a row in the table above. */}
-        {canOwner && (
-          <Button
-            label={herdValuePdfLoading ? "Generating…" : "Total Herd Value"}
-            icon={<FileDown size={15} className="mr-1.5" />}
-            loading={herdValuePdfLoading}
-            onClick={handleTotalHerdValuePdf}
-            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
-            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
-          />
-          )}
-        {canOwner && (
-          <Button
-            label={overviewPdfLoading ? "Generating…" : "Herd Overview"}
-            icon={<FileDown size={15} className="mr-1.5" />}
-            loading={overviewPdfLoading}
-            onClick={handleHerdOverviewPdf}
-            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
-            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
-          />
-        )}
-        </div>
-      </div>
-
-
-      {/* Herd-wide listing — every animal with its current weight & valuation, so
-          nobody has to look animals up one by one. */}
-      <div className="mb-5 border-t pt-6">
+      {/* Herd-wide listing — sits directly under the summary cards so every animal
+          is visible at a glance; nobody has to look animals up one by one. */}
+      <div className="mb-6 border-t pt-6">
         <h2
           className="font-display mb-1 text-lg font-semibold"
           style={{ color: "var(--text-heading)" }}
@@ -609,6 +538,78 @@ function WeightValuationPage() {
           <Column header="Actions" style={{ width: "130px" }} body={animalActions} />
         </DataTable>
       </div>
+
+      {/* Progress charts — always visible */}
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
+            Latest Weight by Animal (kg)
+          </p>
+          <BarChart
+            data={weightChartData}
+            color="var(--primary)"
+            formatter={(v) => `${formatNumber(v, 1)} kg`}
+          />
+        </div>
+
+        {canOwner && (
+        <div
+          className="rounded-xl border p-4"
+          style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}
+        >
+          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--text-heading)" }}>
+            Latest Valuation by Animal (Rs.)
+          </p>
+          <BarChart
+            data={valuationChartData}
+            color="var(--primary-hover)"
+            formatter={(v) => `Rs. ${formatNumber(v, 0)}`}
+          />
+        </div>
+        )}
+      </div>
+
+      {/* Reports / PDF downloads */}
+      <div className="mb-6 rounded-xl border p-4" style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border)" }}>
+        <div className="mb-1 flex items-center gap-2">
+          <FileDown size={18} style={{ color: "var(--primary)" }} />
+          <h2 className="font-display text-lg font-semibold" style={{ color: "var(--text-heading)" }}>
+            Reports
+          </h2>
+        </div>
+        <p className="mb-4 text-sm" style={{ color: "var(--text-muted)" }}>
+          Generate a beautiful PDF for each farm report.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Growth Trend is per animal, so it moved to the animal's history page —
+              open it by clicking a row in the table above. */}
+        {canOwner && (
+          <Button
+            label={herdValuePdfLoading ? "Generating…" : "Total Herd Value"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={herdValuePdfLoading}
+            onClick={handleTotalHerdValuePdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+          )}
+        {canOwner && (
+          <Button
+            label={overviewPdfLoading ? "Generating…" : "Herd Overview"}
+            icon={<FileDown size={15} className="mr-1.5" />}
+            loading={overviewPdfLoading}
+            onClick={handleHerdOverviewPdf}
+            className="!justify-start !rounded-lg !px-4 !py-2.5 !text-sm !font-semibold !text-white"
+            style={{ backgroundColor: "var(--primary)", borderColor: "var(--primary)" }}
+          />
+        )}
+        </div>
+      </div>
+
+
 
 
       <LogWeightDialog
