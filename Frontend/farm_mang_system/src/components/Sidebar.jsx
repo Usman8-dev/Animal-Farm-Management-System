@@ -10,6 +10,7 @@ import {
   Scale,
   Dna,
   Syringe,
+  Stethoscope,
   LogOut,
   X,
   ChevronDown,
@@ -57,6 +58,12 @@ function Sidebar({ mobileOpen, onClose }) {
         label: "Vaccination",
         to: "/vaccination",
         icon: Syringe,
+        roles: ["owner", "manager", "worker"],
+      },
+      {
+        label: "Health & Disease",
+        to: "/health",
+        icon: Stethoscope,
         roles: ["owner", "manager", "worker"],
       },
       {

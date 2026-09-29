@@ -125,7 +125,7 @@ function themedTable(doc, options) {
       fontSize: 9,
     },
     alternateRowStyles: { fillColor: [244, 241, 233] },
-    didDrawPage: (data) => {
+    didDrawPage: () => {
       const pageH = doc.internal.pageSize.getHeight();
       const pageW = doc.internal.pageSize.getWidth();
       doc.setFont("helvetica", "normal");
@@ -624,4 +624,233 @@ export function generateVaccinationSeasonalPdf({ data, generatedBy = "" }) {
   }
 
   finalize(doc, "vaccination-seasonal.pdf");
+}
+
+// ── Module 6: Health & Disease reports ──────────────────────────────────────
+
+// Y position under the previously drawn table (autoTable tracks finalY).
+const nextY = (doc, fallback) => (doc.lastAutoTable ? doc.lastAutoTable.finalY + 18 : fallback);
+
+// Report 12: Health & disease — herd overview
+export function generateHealthOverviewPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Health & Disease Overview"
+  );
+
+  const d = data || {};
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 42) / 2;
+  drawStatCard(doc, 14, 56, cardW, 32, "Active cases", `${d.open_cases ?? 0}`);
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 32, "In quarantine", `${d.quarantined ?? 0}`);
+  drawStatCard(doc, 14, 92, cardW, 32, "Recovery rate", `${d.recovery_rate ?? 0}%`);
+  drawStatCard(doc, 14 + cardW + 14, 92, cardW, 32, "Treatment cost", money(d.treatment_cost ?? 0));
+  drawStatCard(doc, 14, 128, cardW, 32, "Cases recorded", `${d.total_cases ?? 0}`);
+  drawStatCard(
+    doc,
+    14 + cardW + 14,
+    128,
+    cardW,
+    32,
+    "Losses (died + culled)",
+    `${(d.died ?? 0) + (d.culled ?? 0)}`
+  );
+
+  const severity = d.by_severity || [];
+  const categories = d.by_category || [];
+  const rows = Math.max(severity.length, categories.length);
+
+  if (rows) {
+    themedTable(doc, {
+      startY: 168,
+      head: [["Severity", "Cases", "Category", "Cases"]],
+      body: Array.from({ length: rows }).map((_, i) => [
+        severity[i] ? severity[i].severity : "",
+        severity[i] ? severity[i].count : "",
+        categories[i] ? categories[i].category : "",
+        categories[i] ? categories[i].count : "",
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No health cases recorded yet.", 14, 168);
+  }
+
+  const top = d.top_diseases || [];
+  if (top.length) {
+    themedTable(doc, {
+      startY: nextY(doc, 190),
+      head: [["Most frequent diagnoses", "Cases"]],
+      body: top.map((t) => [t.diagnosis || "—", t.count]),
+    });
+  }
+
+  finalize(doc, "health-overview.pdf");
+}
+
+// Report 13: Health & disease — disease frequency
+export function generateDiseaseFrequencyPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Disease Frequency"
+  );
+
+  const d = data || {};
+  const rows = d.diseases || [];
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 42) / 2;
+  drawStatCard(doc, 14, 56, cardW, 32, "Cases recorded", `${d.total_cases ?? 0}`);
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 32, "Distinct diseases", `${d.distinct_diseases ?? 0}`);
+
+  if (rows.length) {
+    themedTable(doc, {
+      startY: 104,
+      head: [["Diagnosis", "Category", "Cases", "Animals", "Open", "Recovered", "Died", "Mortality", "Avg days", "Cost"]],
+      body: rows.map((r) => [
+        r.diagnosis || "—",
+        r.category || "—",
+        r.cases ?? 0,
+        r.animals ?? 0,
+        r.open ?? 0,
+        r.recovered ?? 0,
+        r.died ?? 0,
+        `${r.mortality_rate ?? 0}%`,
+        r.avg_duration_days == null ? "—" : `${r.avg_duration_days}`,
+        money(r.cost ?? 0),
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No health cases recorded yet.", 14, 104);
+  }
+
+  finalize(doc, "health-disease-frequency.pdf");
+}
+
+// Report 14: Health & disease — active cases + quarantine
+export function generateHealthActiveCasesPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Active Health Cases & Quarantine"
+  );
+
+  const active = data?.active || {};
+  const quarantine = data?.quarantine || {};
+  const cases = active.cases || [];
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 42) / 2;
+  drawStatCard(doc, 14, 56, cardW, 32, "Open cases", `${active.total ?? cases.length}`);
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 32, "Quarantined", `${active.quarantined ?? 0}`);
+  drawStatCard(doc, 14, 92, cardW, 32, "Critical / severe", `${(active.critical ?? 0) + (active.severe ?? 0)}`);
+  drawStatCard(doc, 14 + cardW + 14, 92, cardW, 32, "Open treatment cost", money(active.treatment_cost ?? 0));
+
+  if (cases.length) {
+    themedTable(doc, {
+      startY: 136,
+      head: [["Tag", "Animal", "Diagnosis", "Severity", "Status", "Days open", "Isolated", "Cost"]],
+      body: cases.map((c) => [
+        c.tag_number || "—",
+        c.animal_name || "—",
+        c.diagnosis || "—",
+        c.severity || "—",
+        c.status || "—",
+        c.open_days == null ? "—" : `${c.open_days}`,
+        c.is_quarantined ? "Yes" : "No",
+        money(c.treatment_cost ?? 0),
+      ]),
+    });
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No open health cases — the herd is clear.", 14, 136);
+  }
+
+  const isolated = quarantine.cases || [];
+  if (isolated.length) {
+    themedTable(doc, {
+      startY: nextY(doc, 170),
+      head: [["Quarantined animal", "Diagnosis", "Since", "Days isolated", "Contagious"]],
+      body: isolated.map((c) => [
+        c.tag_number || "—",
+        c.diagnosis || "—",
+        dateStr(c.diagnosed_on),
+        c.days_isolated == null ? "—" : `${c.days_isolated}`,
+        c.is_contagious ? "Yes" : "No",
+      ]),
+    });
+  }
+
+  finalize(doc, "health-active-cases.pdf");
+}
+
+// Report 15: Health & disease — treatment cost
+export function generateHealthTreatmentCostPdf({ data, generatedBy = "" }) {
+  const doc = new jsPDF();
+  drawHeader(
+    doc,
+    `Generated ${new Date().toLocaleString()}${generatedBy ? ` • by ${generatedBy}` : ""}`,
+    "Health Treatment Cost"
+  );
+
+  const d = data || {};
+  const pageW = doc.internal.pageSize.getWidth();
+  const cardW = (pageW - 42) / 2;
+  drawStatCard(doc, 14, 56, cardW, 32, "Total spend", money(d.total_cost ?? 0));
+  drawStatCard(doc, 14 + cardW + 14, 56, cardW, 32, "Treatments", `${d.treatment_count ?? 0}`);
+  drawStatCard(doc, 14, 92, cardW, 32, "Animals treated", `${d.animals_treated ?? 0}`);
+  drawStatCard(
+    doc,
+    14 + cardW + 14,
+    92,
+    cardW,
+    32,
+    "Avg per treatment",
+    money(d.treatment_count ? (Number(d.total_cost ?? 0) / d.treatment_count) : 0)
+  );
+
+  const byMedicine = d.by_medicine || [];
+  if (byMedicine.length) {
+    themedTable(doc, {
+      startY: 136,
+      head: [["Medicine", "Cost"]],
+      body: byMedicine.map((m) => [m.medicine || "—", money(m.cost ?? 0)]),
+    });
+  }
+
+  const records = d.records || [];
+  if (records.length) {
+    themedTable(doc, {
+      startY: nextY(doc, byMedicine.length ? 190 : 140),
+      head: [["Tag", "Animal", "Diagnosis", "Medicine", "Dosage", "Start", "End", "Cost"]],
+      body: records.map((r) => [
+        r.tag_number || "—",
+        r.animal_name || "—",
+        r.diagnosis || "—",
+        r.medicine || "—",
+        r.dosage || "—",
+        dateStr(r.start_date),
+        r.end_date ? dateStr(r.end_date) : "—",
+        money(r.cost ?? 0),
+      ]),
+    });
+  } else if (!byMedicine.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...MUTED);
+    doc.text("No treatment costs recorded.", 14, 140);
+  }
+
+  finalize(doc, "health-treatment-cost.pdf");
 }

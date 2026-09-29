@@ -65,6 +65,7 @@ import WeightValuationPage from "./Pages/Weight/WeightValuationPage";
 import WeightValuationDetailPage from "./Pages/Weight/WeightValuationDetailPage";
 import BreedingPage from "./Pages/Breeding/BreedingPage";
 import VaccinationPage from "./Pages/Vaccination/VaccinationPage";
+import HealthPage from "./Pages/Health/HealthPage";
 function App() {
   return (
     <div>
@@ -111,6 +112,9 @@ function App() {
 
                     {/* Module 5 — Vaccination & Immunization */}
                     <Route path="/vaccination" element={<VaccinationPage />} />
+
+                    {/* Module 6 — Health & Disease Management */}
+                    <Route path="/health" element={<HealthPage />} />
               </Route>
             </Routes>
           </ToastProvider>

@@ -15,6 +15,7 @@ import StatusRoute from './Routers/StatusRoute.js'
 import WeightValuationRoute from './Routers/WeightValuationRoute.js'
 import BreedingRoute from './Routers/BreedingRoute.js'
 import VaccinationRoute from './Routers/VaccinationRoute.js'
+import HealthRoute from './Routers/HealthRoute.js'
 
 
 const app = express();
@@ -54,6 +55,7 @@ apiRouter.use('/status/api', StatusRoute);
 apiRouter.use('/weight/api', WeightValuationRoute);
 apiRouter.use('/breeding/api', BreedingRoute);
 apiRouter.use('/vaccination/api', VaccinationRoute);
+apiRouter.use('/health/api', HealthRoute);
 
 // Base application mounts everything under the /api namespace
 app.use('/api', apiRouter);

@@ -99,6 +99,11 @@ model Farms {
   vaccinationScheduleRules  VaccinationScheduleRule[]
   animalVaccinations        AnimalVaccination[]
 
+  diseases              Disease[]
+  medicines             Medicine[]
+  healthCases           HealthCase[]
+  healthTreatments      HealthTreatment[]
+
   @@map("farms")
 }
 
@@ -268,6 +273,7 @@ model Animal {
   pregnancySires  Pregnancy[] @relation("PregnancySire")
   birthKids       BirthKid[]
   vaccinations    AnimalVaccination[]
+  healthCases     HealthCase[] @relation("HealthCaseAnimal")
 
   @@unique([farm_id, tag_number]) // tag numbers are unique per farm, not globally
   @@map("animals")
@@ -576,4 +582,145 @@ model AnimalVaccination {
   @@index([animal_id, administered_date])
   @@index([vaccination_type_id, batch_number])
   @@map("animal_vaccinations")
+}
+
+// ── Module 6: Health & Disease Management ─────────────────────
+
+// Disease catalogue (master data). A case may reference a catalogue entry or
+// carry free-text diagnosis only — same optional-link pattern as Pregnancy.sire.
+model Disease {
+  id            Int      @id @default(autoincrement())
+  farm_id       Int
+  farm          Farms    @relation(fields: [farm_id], references: [id])
+
+  code          String   // short label, e.g. "FMD", "MASTITIS"
+  name          String
+  category      String   @default("OTHER") // BACTERIAL | VIRAL | PARASITIC | FUNGAL | NUTRITIONAL | METABOLIC | OTHER
+  symptoms      String?  // hint text shown when logging a case
+  description   String?
+  is_contagious Boolean  @default(false)
+  is_active     Boolean  @default(true)
+
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  deleted_at    DateTime?
+
+  createdby     Int?
+  updatedby     Int?
+  deletedby     Int?
+
+  healthCases   HealthCase[]
+
+  @@unique([farm_id, code])
+  @@map("diseases")
+}
+
+// Medicine catalogue (master data) — drives the withdrawal-period clearance
+// report so milk/meat is not sold while residues are still present.
+model Medicine {
+  id              Int      @id @default(autoincrement())
+  farm_id         Int
+  farm            Farms    @relation(fields: [farm_id], references: [id])
+
+  code            String
+  name            String
+  unit            String?  // ml | mg | g | tablet | sachet | dose
+  withdrawal_days Int?
+  description     String?
+  is_active       Boolean  @default(true)
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  deleted_at      DateTime?
+
+  createdby       Int?
+  updatedby       Int?
+  deletedby       Int?
+
+  treatments      HealthTreatment[]
+
+  @@unique([farm_id, code])
+  @@map("medicines")
+}
+
+// One diagnosed illness episode for one animal.
+model HealthCase {
+  id              Int       @id @default(autoincrement())
+
+  farm_id         Int
+  farm            Farms     @relation(fields: [farm_id], references: [id])
+
+  animal_id       Int
+  animal          Animal    @relation("HealthCaseAnimal", fields: [animal_id], references: [id])
+
+  disease_id      Int?
+  disease         Disease?  @relation(fields: [disease_id], references: [id])
+  diagnosis       String    // free text; mirrors Disease.name when linked
+
+  category        String    @default("OTHER")
+  severity        String    @default("MODERATE") // MILD | MODERATE | SEVERE | CRITICAL
+  status          String    @default("OPEN")     // OPEN | UNDER_TREATMENT | RECOVERED | CHRONIC | DIED | CULLED
+
+  diagnosed_on    DateTime  @default(now())
+  diagnosed_by    String?
+  is_contagious   Boolean   @default(false)
+  is_quarantined  Boolean   @default(false)
+
+  symptoms        String?
+  notes           String?
+  outcome_date    DateTime?
+  outcome_notes   String?
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  deleted_at      DateTime?
+
+  createdby       Int?
+  updatedby       Int?
+  deletedby       Int?
+
+  treatments      HealthTreatment[]
+
+  @@index([farm_id, diagnosed_on])
+  @@index([farm_id, status])
+  @@index([animal_id, diagnosed_on])
+  @@map("health_cases")
+}
+
+// A medicine / dose administered as part of a case.
+model HealthTreatment {
+  id                  Int        @id @default(autoincrement())
+
+  farm_id             Int
+  farm                Farms      @relation(fields: [farm_id], references: [id])
+
+  case_id             Int
+  healthCase          HealthCase @relation(fields: [case_id], references: [id])
+
+  medicine_id         Int?
+  medicine            Medicine?  @relation(fields: [medicine_id], references: [id])
+  medicine_name       String?    // free text when the medicine is not catalogued
+
+  dosage              String?
+  route               String?    // ORAL | INJECTION_IM | INJECTION_IV | SUBCUTANEOUS | TOPICAL | OTHER
+  frequency           String?
+  start_date          DateTime   @default(now())
+  end_date            DateTime?
+  administered_by     String?
+  withdrawal_days     Int?
+  withdrawal_end_date DateTime?  // end_date (or start_date) + withdrawal_days
+  cost                Decimal?   @db.Decimal(12, 2)
+  notes               String?
+
+  created_at          DateTime   @default(now())
+  updated_at          DateTime   @updatedAt
+  deleted_at          DateTime?
+
+  createdby           Int?
+  updatedby           Int?
+  deletedby           Int?
+
+  @@index([case_id, start_date])
+  @@index([farm_id, withdrawal_end_date])
+  @@map("health_treatments")
 }

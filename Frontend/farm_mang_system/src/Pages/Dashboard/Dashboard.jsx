@@ -1418,6 +1418,7 @@ function Dashboard() {
                 { to: "/weight", label: "Weight & valuation", icon: Scale },
                 { to: "/breeding", label: "Breeding & reproduction", icon: HeartPulse },
                 { to: "/vaccination", label: "Vaccinations", icon: Syringe },
+                { to: "/health", label: "Health & disease", icon: Activity },
                 { to: "/master-data/animal-status", label: "Animal lifecycle", icon: GitBranch },
                 { to: "/team", label: "Farm team", icon: UserPlus },
               ].map((a) => (
